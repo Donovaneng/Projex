@@ -101,7 +101,7 @@ final class DashboardController
       ? "Votre livrable a été validé."
       : "Votre livrable a été rejeté. Motif : " . ($reason !== "" ? $reason : "Aucun motif précisé.");
 
-      $linkUrl = "/projex/public/student/livrables";
+      $linkUrl = "/student/deliverables";
 
       Notification::create(
         $pdo,
@@ -114,7 +114,7 @@ final class DashboardController
       );
     }
 
-    header("Location: /projex/public/projects/livrables?id=" . $projectId);
+    // header("Location: /projex/public/projects/livrables?id=" . $projectId);
     exit;
   }
 
@@ -136,7 +136,7 @@ final class DashboardController
 
     Livrable::addComment($pdo, $livrableId, $authorId, $commentaire);
 
-    header("Location: /projex/public/projects/livrables?id=" . $projectId);
+    // header("Location: /projex/public/projects/livrables?id=" . $projectId);
     exit;
   }
 
@@ -148,13 +148,6 @@ final class DashboardController
 
     $project = Project::find($pdo, $projectId);
     
-    View::render("dashboard/evaluate", [
-      "title" => "Évaluation du projet",
-      "project" => $project,
-      "student_id" => $assignment["etudiant_id"] ?? 0,
-      "pdo" => $pdo
-    ]);
-
     $stmt = $pdo->prepare("
       SELECT etudiant_id
       FROM project_assignments
@@ -163,6 +156,13 @@ final class DashboardController
     ");
     $stmt->execute([$projectId]);
     $assignment = $stmt->fetch();
+
+    View::render("dashboard/evaluate", [
+      "title" => "Évaluation du projet",
+      "project" => $project,
+      "student_id" => $assignment["etudiant_id"] ?? 0,
+      "pdo" => $pdo
+    ]);
   }
   public static function saveEvaluation(PDO $pdo): void
   {
@@ -185,7 +185,7 @@ final class DashboardController
       $comment
     );
 
-    header("Location: /projex/public/dashboard");
+    // header("Location: /projex/public/dashboard");
     exit;
   }
 
@@ -249,7 +249,7 @@ final class DashboardController
 
     }
 
-    header("Location: /projex/public/dashboard");
+    // header("Location: /projex/public/dashboard");
     exit;
   }
 }

@@ -47,7 +47,7 @@ final class AdminProjectController
       return;
     }
 
-    Project::create($pdo, $titre, $description !== "" ? $description : null, $date_debut ?: null, $date_fin ?: null);
+    Project::create($pdo, $titre, $description !== "" ? $description : null, $date_debut ?: null, $date_fin ?: null, (int)$_SESSION["user"]["id"], "ADMIN");
 
     // Retourner JSON si API call
     if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
@@ -56,7 +56,7 @@ final class AdminProjectController
       return;
     }
 
-    header("Location: /projex/public/admin/projects");
+    // header("Location: /projex/public/admin/projects");
     exit;
   }
 
@@ -94,12 +94,57 @@ final class AdminProjectController
       return;
     }
 
-    // Assigner chaque utilisateur
+    // Assigner chaque utilisateur selon son rôle
+    $etudiantId = null;
+    $acadId = null;
+    $proId = null;
+
     foreach ($userIds as $userId) {
       $userId = (int)$userId;
       if ($userId > 0) {
-        Project::assign($pdo, $projectId, $userId, null, null);
+        $user = User::findById($pdo, $userId);
+        if ($user) {
+          if ($user["role"] === "ETUDIANT") {
+            $etudiantId = $userId;
+          } elseif ($user["role"] === "ENCADREUR_ACAD") {
+            $acadId = $userId;
+          } elseif ($user["role"] === "ENCADREUR_PRO") {
+            $proId = $userId;
+          }
+        }
       }
+    }
+
+    // Si on n'a pas reçu d'étudiant dans la liste, on regarde s'il y en a déjà un
+    if (!$etudiantId) {
+      $existingAssignment = Project::assignedStudent($pdo, $projectId);
+      if ($existingAssignment) {
+        $etudiantId = (int)$existingAssignment["id"];
+      } else {
+        // Optionnel : vérifier aussi projects.student_id au cas où
+        $project = Project::find($pdo, $projectId);
+        if ($project && $project["student_id"]) {
+          $etudiantId = (int)$project["student_id"];
+        }
+      }
+    }
+
+    if ($etudiantId) {
+      Project::assign($pdo, $projectId, $etudiantId, $acadId, $proId);
+      
+      // Notifications aux membres de l'équipe
+      $project = Project::find($pdo, $projectId);
+      $msg = "Vous avez été assigné au projet : " . ($project["titre"] ?? "Nouveau projet");
+      
+      if ($etudiantId) Notification::create($pdo, $etudiantId, "Affectation Projet", $msg, "/student/projects");
+      if ($acadId) Notification::create($pdo, $acadId, "Encadrement Projet", $msg, "/supervisor/projects");
+      if ($proId) Notification::create($pdo, $proId, "Encadrement Projet", $msg, "/supervisor/projects");
+
+    } else {
+      http_response_code(400);
+      header("Content-Type: application/json");
+      echo json_encode(["error" => "Un étudiant est requis pour l'assignation"]);
+      return;
     }
 
     // Retourner JSON si API call
@@ -109,7 +154,103 @@ final class AdminProjectController
       return;
     }
 
-    header("Location: /projex/public/admin/projects");
+    // header("Location: /projex/public/admin/projects");
     exit;
+  }
+
+  public static function update(PDO $pdo, int $id): void
+  {
+      header("Content-Type: application/json");
+      $input = json_decode(file_get_contents('php://input'), true);
+
+      try {
+          Project::update($pdo, $id, $input);
+          echo json_encode(["message" => "Projet mis à jour avec succès"]);
+      } catch (Throwable $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la mise à jour"]);
+      }
+  }
+
+  public static function delete(PDO $pdo, int $id): void
+  {
+      header("Content-Type: application/json");
+      try {
+          Project::delete($pdo, $id);
+          echo json_encode(["message" => "Projet supprimé avec succès"]);
+      } catch (Throwable $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la suppression"]);
+      }
+  }
+
+  public static function approveProposal(PDO $pdo, int $id): void
+  {
+      header("Content-Type: application/json");
+      try {
+          Project::update($pdo, $id, ["statut" => "EN_COURS"]);
+          
+          // Notification à l'étudiant
+          $project = Project::find($pdo, $id);
+          if ($project && $project["student_id"]) {
+              Notification::create($pdo, (int)$project["student_id"], "Projet Validé", "Votre proposition de projet '" . $project["titre"] . "' a été validée par l'administration.", "/student/projects");
+          }
+
+          echo json_encode(["message" => "Proposition validée avec succès"]);
+      } catch (Throwable $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la validation"]);
+      }
+  }
+
+  public static function searchProjects(PDO $pdo): void
+  {
+      header("Content-Type: application/json");
+      $q = $_GET["q"] ?? "";
+      $statut = $_GET["statut"] ?? "";
+
+      $filters = [
+          "q" => $q,
+          "statut" => $statut
+      ];
+
+      try {
+          $projects = Project::search($pdo, $filters);
+          echo json_encode(["projects" => $projects]);
+      } catch (Throwable $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la recherche"]);
+      }
+  }
+
+  public static function rejectProposal(PDO $pdo, int $id): void
+  {
+      header("Content-Type: application/json");
+      try {
+          Project::update($pdo, $id, ["statut" => "REJETE"]);
+
+          // Notification à l'étudiant
+          $project = Project::find($pdo, $id);
+          if ($project && $project["student_id"]) {
+              Notification::create($pdo, (int)$project["student_id"], "Projet Rejeté", "Votre proposition de projet '" . $project["titre"] . "' a été rejetée par l'administration.", "/student/projects");
+          }
+
+          echo json_encode(["message" => "Proposition rejetée"]);
+      } catch (Throwable $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors du rejet"]);
+      }
+  }
+
+  public static function closeProject(PDO $pdo, int $id): void
+  {
+      header("Content-Type: application/json");
+      try {
+          Project::update($pdo, $id, ["statut" => "CLOTURE"]);
+          echo json_encode(["message" => "Projet clôturé"]);
+      } catch (Throwable $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la clôture"]);
+      }
   }
 }

@@ -1,0 +1,252 @@
+Database: projex
+
+Tables & Schemas:
+--- TABLE: academic_periods ---
+CREATE TABLE `academic_periods` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `label` varchar(100) NOT NULL,
+  `date_debut` date NOT NULL,
+  `date_fin` date NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+--- TABLE: affectations ---
+CREATE TABLE `affectations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `projet_id` int(11) NOT NULL,
+  `etudiant_id` int(11) NOT NULL,
+  `encadreur_acad_id` int(11) NOT NULL,
+  `encadreur_pro_id` int(11) NOT NULL,
+  `assigned_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_aff_projet_etudiant` (`projet_id`,`etudiant_id`),
+  KEY `fk_aff_etudiant` (`etudiant_id`),
+  KEY `fk_aff_acad` (`encadreur_acad_id`),
+  KEY `fk_aff_pro` (`encadreur_pro_id`),
+  CONSTRAINT `fk_aff_acad` FOREIGN KEY (`encadreur_acad_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_aff_etudiant` FOREIGN KEY (`etudiant_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_aff_pro` FOREIGN KEY (`encadreur_pro_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_aff_projet` FOREIGN KEY (`projet_id`) REFERENCES `projets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+--- TABLE: audit_logs ---
+CREATE TABLE `audit_logs` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `actor_id` int(11) DEFAULT NULL,
+  `action` varchar(120) NOT NULL,
+  `entity` varchar(80) NOT NULL,
+  `entity_id` bigint(20) unsigned DEFAULT NULL,
+  `details` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`details`)),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_audit_actor` (`actor_id`),
+  CONSTRAINT `fk_audit_actor` FOREIGN KEY (`actor_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+--- TABLE: evaluation_academique ---
+CREATE TABLE `evaluation_academique` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `projet_id` bigint(20) unsigned NOT NULL,
+  `etudiant_id` bigint(20) unsigned NOT NULL,
+  `encadreur_acad_id` bigint(20) unsigned NOT NULL,
+  `note` decimal(5,2) DEFAULT NULL,
+  `commentaire` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+--- TABLE: evaluations ---
+CREATE TABLE `evaluations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `projet_id` int(11) NOT NULL,
+  `etudiant_id` int(11) NOT NULL,
+  `encadreur_acad_id` int(11) NOT NULL,
+  `note` float DEFAULT NULL,
+  `commentaire` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_eval_projet_etudiant` (`projet_id`,`etudiant_id`),
+  KEY `fk_eval_etudiant` (`etudiant_id`),
+  KEY `fk_eval_acad` (`encadreur_acad_id`),
+  CONSTRAINT `fk_eval_acad` FOREIGN KEY (`encadreur_acad_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_eval_etudiant` FOREIGN KEY (`etudiant_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_eval_projet` FOREIGN KEY (`projet_id`) REFERENCES `projets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+--- TABLE: livrable_commentaires ---
+CREATE TABLE `livrable_commentaires` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `livrable_id` int(11) NOT NULL,
+  `author_id` int(11) NOT NULL,
+  `commentaire` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_lc_livrable` (`livrable_id`),
+  KEY `fk_lc_author` (`author_id`),
+  CONSTRAINT `fk_lc_author` FOREIGN KEY (`author_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_lc_livrable` FOREIGN KEY (`livrable_id`) REFERENCES `livrables` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+--- TABLE: livrables ---
+CREATE TABLE `livrables` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL,
+  `etudiant_id` int(11) NOT NULL,
+  `titre` varchar(200) NOT NULL,
+  `type` enum('RAPPORT','CODE_SOURCE','PRESENTATION','AUTRE') DEFAULT 'RAPPORT',
+  `version_num` int(11) NOT NULL DEFAULT 1,
+  `submitted_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `validated_at` timestamp NULL DEFAULT NULL,
+  `validated_by` bigint(20) unsigned DEFAULT NULL,
+  `file_name` varchar(255) NOT NULL,
+  `file_path` varchar(255) NOT NULL,
+  `mime_type` varchar(120) DEFAULT NULL,
+  `file_size` bigint(20) unsigned DEFAULT NULL,
+  `statut` enum('SOUMIS','VALIDE','REJETE') DEFAULT 'SOUMIS',
+  `rejection_reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_livrables_project` (`project_id`),
+  KEY `fk_livrables_etudiant` (`etudiant_id`),
+  CONSTRAINT `fk_livrables_etudiant` FOREIGN KEY (`etudiant_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_livrables_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+--- TABLE: messages ---
+CREATE TABLE `messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  `message` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `sender_id` (`sender_id`),
+  KEY `idx_messages_project` (`project_id`),
+  CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+--- TABLE: notifications ---
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `titre` varchar(200) NOT NULL,
+  `message` text NOT NULL,
+  `link_url` varchar(255) DEFAULT NULL,
+  `entity_type` varchar(50) DEFAULT NULL,
+  `entity_id` int(11) DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_notifications_user` (`user_id`),
+  CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+--- TABLE: project_assignments ---
+CREATE TABLE `project_assignments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL,
+  `etudiant_id` int(11) NOT NULL,
+  `encadreur_acad_id` int(11) DEFAULT NULL,
+  `encadreur_pro_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_one_assignment_per_project` (`project_id`),
+  KEY `fk_pa_acad` (`encadreur_acad_id`),
+  KEY `fk_pa_pro` (`encadreur_pro_id`),
+  KEY `idx_etudiant` (`etudiant_id`),
+  CONSTRAINT `fk_pa_acad` FOREIGN KEY (`encadreur_acad_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_pa_etudiant` FOREIGN KEY (`etudiant_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pa_pro` FOREIGN KEY (`encadreur_pro_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_pa_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+--- TABLE: project_categories ---
+CREATE TABLE `project_categories` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `label` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+--- TABLE: projects ---
+CREATE TABLE `projects` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `titre` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `date_debut` date DEFAULT NULL,
+  `date_fin` date DEFAULT NULL,
+  `statut` enum('BROUILLON','EN_ATTENTE','A_CONFIRMER','A_MODIFIER','REJETE','ACTIF','CLOTURE') DEFAULT 'BROUILLON',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `created_by` int(11) DEFAULT NULL,
+  `created_by_role` enum('ETUDIANT','ENCADREUR','ADMIN') DEFAULT NULL,
+  `student_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_project_student` (`student_id`),
+  CONSTRAINT `fk_project_student` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+--- TABLE: projets ---
+CREATE TABLE `projets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `titre` varchar(120) NOT NULL,
+  `description` text DEFAULT NULL,
+  `date_debut` date DEFAULT NULL,
+  `date_fin` date DEFAULT NULL,
+  `statut` enum('EN_PREPARATION','EN_COURS','CLOTURE') NOT NULL DEFAULT 'EN_PREPARATION',
+  `created_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_projets_created_by` (`created_by`),
+  CONSTRAINT `fk_projets_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+
+--- TABLE: taches ---
+CREATE TABLE `taches` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `project_id` int(11) NOT NULL,
+  `assigned_to` int(11) NOT NULL,
+  `created_by` int(11) NOT NULL,
+  `titre` varchar(200) NOT NULL,
+  `description` text DEFAULT NULL,
+  `due_date` date DEFAULT NULL,
+  `statut` enum('A_FAIRE','EN_COURS','TERMINE','BLOQUE') NOT NULL DEFAULT 'A_FAIRE',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_taches_project` (`project_id`),
+  KEY `fk_taches_assigned_to` (`assigned_to`),
+  KEY `fk_taches_created_by` (`created_by`),
+  CONSTRAINT `fk_taches_assigned_to` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_taches_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_taches_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+--- TABLE: users ---
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `role_id` tinyint(3) unsigned NOT NULL DEFAULT 2,
+  `nom` varchar(50) NOT NULL,
+  `prenom` varchar(50) NOT NULL,
+  `email` varchar(180) NOT NULL,
+  `image_profil` varchar(255) DEFAULT NULL,
+  `telephone` varchar(30) DEFAULT NULL,
+  `mot_de_passe` varchar(255) NOT NULL,
+  `role` varchar(30) DEFAULT NULL,
+  `role_demande` enum('ETUDIANT','ENCADREUR_ACAD','ENCADREUR_PRO') DEFAULT NULL,
+  `actif` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `matricule` varchar(30) DEFAULT NULL,
+  `filiere` varchar(80) DEFAULT NULL,
+  `niveau` varchar(20) DEFAULT NULL,
+  `entreprise` varchar(120) DEFAULT NULL,
+  `poste` varchar(80) DEFAULT NULL,
+  `departement` varchar(120) DEFAULT NULL,
+  `grade` varchar(80) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`),
+  UNIQUE KEY `uq_users_matricule` (`matricule`)
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+

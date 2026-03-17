@@ -100,4 +100,22 @@ final class Livrable
 
     return (int)($row["max_version"] ?? 0) + 1;
     }
+
+    public static function delete(PDO $pdo, int $id): void
+    {
+        $stmt = $pdo->prepare("DELETE FROM livrables WHERE id = ?");
+        $stmt->execute([$id]);
+    }
+
+    public static function all(PDO $pdo): array
+    {
+        $stmt = $pdo->query("
+            SELECT l.*, p.titre AS projet_titre, u.nom, u.prenom
+            FROM livrables l
+            JOIN projects p ON p.id = l.project_id
+            JOIN users u ON u.id = l.etudiant_id
+            ORDER BY l.submitted_at DESC
+        ");
+        return $stmt->fetchAll();
+    }
 }

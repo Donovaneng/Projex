@@ -2,12 +2,12 @@
 -- PROJEX - Database schema (MySQL 8+)
 -- =========================================================
 
-DROP DATABASE IF EXISTS projex_db;
-CREATE DATABASE projex_db
+DROP DATABASE IF EXISTS projex;
+CREATE DATABASE projex
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE projex_db;
+USE projex;
 
 -- -------------------------
 -- 1) Roles
@@ -34,8 +34,23 @@ CREATE TABLE users (
   prenom VARCHAR(80) NOT NULL,
   email VARCHAR(180) NOT NULL UNIQUE,
   telephone VARCHAR(30) NULL,
-  password_hash VARCHAR(255) NOT NULL,         -- bcrypt/argon2
-  is_active TINYINT(1) NOT NULL DEFAULT 0,     -- activation par admin (EF4)
+  image_profil VARCHAR(255) NULL,
+  mot_de_passe VARCHAR(255) NOT NULL,         -- bcrypt/argon2
+  role VARCHAR(30) NULL,                      -- ETUDIANT, ENCADREUR_ACAD, ENCADREUR_PRO, ADMIN
+  role_demande VARCHAR(30) NULL,
+  actif TINYINT(1) NOT NULL DEFAULT 0,        -- activation par admin (EF4)
+  
+  -- Champs spécifiques Étudiants
+  matricule VARCHAR(50) NULL,
+  filiere VARCHAR(100) NULL,
+  niveau VARCHAR(20) NULL,
+  
+  -- Champs spécifiques Encadreurs
+  entreprise VARCHAR(150) NULL,
+  poste VARCHAR(150) NULL,
+  departement VARCHAR(150) NULL,
+  grade VARCHAR(100) NULL,
+
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
@@ -60,17 +75,38 @@ CREATE TABLE user_entreprise (
   CONSTRAINT fk_ue_ent FOREIGN KEY (entreprise_id) REFERENCES entreprises(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS project_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  label VARCHAR(180) NOT NULL,
+  description VARCHAR(300) NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO project_categories (label, description) VALUES
+('Développement Web', 'Projets orientés vers les technologies web et applications mobiles'),
+('Intelligence Artificielle', 'Projets liés au machine learning, data science et IA'),
+('Réseaux & Sécurité', 'Projets de configuration réseau et cybersécurité'),
+('IoT & Systèmes Embarqués', 'Projets matériels et systèmes temps réel');
+
 -- -------------------------
 -- 3) Projects
 -- -------------------------
 CREATE TABLE IF NOT EXISTS projects (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  categorie_id INT NULL,
   titre VARCHAR(150) NOT NULL,
   description TEXT NULL,
   date_debut DATE NULL,
   date_fin DATE NULL,
   statut ENUM('EN_ATTENTE','EN_COURS','TERMINE') NOT NULL DEFAULT 'EN_ATTENTE',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_by BIGINT UNSIGNED NULL,
+  created_by_role VARCHAR(30) NULL,
+  student_id BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT fk_projects_category FOREIGN KEY (categorie_id) REFERENCES project_categories(id) ON DELETE SET NULL,
+  CONSTRAINT fk_projects_student FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Affectations : 1 étudiant + 2 encadreurs par projet
@@ -120,7 +156,7 @@ CREATE TABLE taches (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
-  CONSTRAINT fk_taches_projet FOREIGN KEY (projet_id) REFERENCES projets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_taches_projet FOREIGN KEY (projet_id) REFERENCES projects(id) ON DELETE CASCADE,
   CONSTRAINT fk_taches_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id),
   CONSTRAINT fk_taches_created_by FOREIGN KEY (created_by) REFERENCES users(id)
 ) ENGINE=InnoDB;
@@ -148,7 +184,7 @@ CREATE TABLE livrables (
   validated_by BIGINT UNSIGNED NULL, -- encadreur
   rejection_reason VARCHAR(500) NULL,
 
-  CONSTRAINT fk_livrables_projet FOREIGN KEY (projet_id) REFERENCES projets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_livrables_projet FOREIGN KEY (projet_id) REFERENCES projects(id) ON DELETE CASCADE,
   CONSTRAINT fk_livrables_etudiant FOREIGN KEY (etudiant_id) REFERENCES users(id),
   CONSTRAINT fk_livrables_validated_by FOREIGN KEY (validated_by) REFERENCES users(id)
 ) ENGINE=InnoDB;
@@ -185,7 +221,7 @@ CREATE TABLE evaluation_academique (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
-  CONSTRAINT fk_ea_projet FOREIGN KEY (projet_id) REFERENCES projets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ea_projet FOREIGN KEY (projet_id) REFERENCES projects(id) ON DELETE CASCADE,
   CONSTRAINT fk_ea_etudiant FOREIGN KEY (etudiant_id) REFERENCES users(id),
   CONSTRAINT fk_ea_acad FOREIGN KEY (encadreur_acad_id) REFERENCES users(id),
   CONSTRAINT uq_ea UNIQUE (projet_id, etudiant_id)
@@ -218,7 +254,7 @@ CREATE TABLE evaluation_professionnelle (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
-  CONSTRAINT fk_ep_projet FOREIGN KEY (projet_id) REFERENCES projets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_ep_projet FOREIGN KEY (projet_id) REFERENCES projects(id) ON DELETE CASCADE,
   CONSTRAINT fk_ep_etudiant FOREIGN KEY (etudiant_id) REFERENCES users(id),
   CONSTRAINT fk_ep_pro FOREIGN KEY (encadreur_pro_id) REFERENCES users(id),
   CONSTRAINT uq_ep UNIQUE (projet_id, etudiant_id)
@@ -284,3 +320,19 @@ CREATE TABLE audit_logs (
 
   CONSTRAINT fk_audit_actor FOREIGN KEY (actor_id) REFERENCES users(id)
 ) ENGINE=InnoDB;
+
+-- -------------------------
+-- 13) Messages (Chat)
+-- -------------------------
+CREATE TABLE IF NOT EXISTS messages (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  sender_id BIGINT UNSIGNED NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_messages_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_messages_project ON messages (project_id);

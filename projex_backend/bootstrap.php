@@ -2,14 +2,14 @@
 declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
-  // configure session cookie to be sent in cross-site AJAX requests (Lax blocks POSTs)
+  // configure session cookie
   session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
-    'domain' => 'localhost',
-    'secure' => false,          // http for now
+    'domain' => '', // Laissez vide pour utiliser le domaine actuel
+    'secure' => false, // false pour HTTP local
     'httponly' => true,
-    'samesite' => 'None',       // allow cross-origin requests
+    'samesite' => 'Lax' // Lax est généralement suffisant et mieux supporté localement sans HTTPS
   ]);
   session_start();
 }
@@ -47,22 +47,22 @@ try {
 // create a demo admin user if not present (useful for development)
 try {
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-    $stmt->execute(['demo@example.com']);
+    $stmt->execute(['admin@projex.com']);  // Nouvel email
     $exists = $stmt->fetchColumn();
     if (!$exists) {
-        $hash = password_hash('demo123', PASSWORD_DEFAULT);
+        $hash = password_hash('admin2024', PASSWORD_DEFAULT);  // Nouveau mot de passe
         $insert = $pdo->prepare(
             "INSERT INTO users
-             (nom, prenom, email, role, role_demande, actif, mot_de_passe)
-             VALUES (?, ?, ?, ?, ?, 1, ?)"
+             (nom, prenom, email, role, mot_de_passe, actif)
+             VALUES (?, ?, ?, ?, ?, ?)"
         );
         $insert->execute([
-            'Demo',
-            'User',
-            'demo@example.com',                 
-            'ADMIN',
-            'ADMIN',
-            $hash,                  
+            'Administrateur',  // Nouveau nom
+            'PROJEX',          // Nouveau prénom
+            'admin@projex.com',    // Nouvel email                 
+            'ADMIN',           // role
+            $hash,             // mot_de_passe
+            1                  // actif
         ]);
     }
 } catch (Throwable $e) {

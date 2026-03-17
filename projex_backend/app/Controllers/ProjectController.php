@@ -38,7 +38,7 @@ final class ProjectController
             (int)$user["id"]
         );
 
-        header("Location: /projex/public/dashboard");
+        // header("Location: /projex/public/dashboard");
         exit;
     }
 }

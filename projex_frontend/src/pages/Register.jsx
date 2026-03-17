@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   User,
   Mail,
@@ -51,6 +51,19 @@ export default function Register() {
 
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const googleData = location.state?.googleData;
+
+  useEffect(() => {
+    if (googleData) {
+      setFormData(prev => ({
+        ...prev,
+        nom: googleData.nom || "",
+        prenom: googleData.prenom || "",
+        email: googleData.email || "",
+      }));
+    }
+  }, [googleData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -233,6 +246,7 @@ export default function Register() {
                   onChange={handleChange}
                   required
                   placeholder="Votre nom"
+                  disabled={!!googleData}
                 />
                 <InputField
                   icon={User}
@@ -242,6 +256,7 @@ export default function Register() {
                   onChange={handleChange}
                   required
                   placeholder="Votre prénom"
+                  disabled={!!googleData}
                 />
               </div>
 
@@ -255,6 +270,7 @@ export default function Register() {
                   onChange={handleChange}
                   required
                   placeholder="ex : prince@mail.com"
+                  disabled={!!googleData}
                 />
                 <InputField
                   icon={Phone}
@@ -441,9 +457,10 @@ function InputField({
   onChange,
   required = false,
   placeholder = "",
+  disabled = false,
 }) {
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${disabled ? 'opacity-70' : ''}`}>
       <label className="block text-sm font-medium text-slate-700">
         {label}
       </label>
@@ -458,8 +475,9 @@ function InputField({
           required={required}
           value={value}
           onChange={onChange}
+          disabled={disabled}
           placeholder={placeholder}
-          className="h-12 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-4 text-sm text-slate-800 outline-none transition shadow-sm placeholder:text-slate-400 focus:border-[#1E4AA8] focus:ring-4 focus:ring-[#1E4AA8]/10"
+          className={`h-12 w-full rounded-2xl border border-slate-300 bg-white pl-11 pr-4 text-sm text-slate-800 outline-none transition shadow-sm placeholder:text-slate-400 focus:border-[#1E4AA8] focus:ring-4 focus:ring-[#1E4AA8]/10 ${disabled ? 'bg-slate-50 cursor-not-allowed' : ''}`}
         />
       </div>
     </div>

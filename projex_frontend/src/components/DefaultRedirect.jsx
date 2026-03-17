@@ -16,9 +16,8 @@ export default function DefaultRedirect() {
       case 'ETUDIANT':
         return <Navigate to="/student/dashboard" replace />;
       case 'ENCADREUR_ACAD':
-        return <Navigate to="/encadreur-acad/dashboard" replace />;
       case 'ENCADREUR_PRO':
-        return <Navigate to="/encadreur-pro/dashboard" replace />;
+        return <Navigate to="/supervisor/dashboard" replace />;
       default:
         return <Navigate to="/login" replace />;
     }

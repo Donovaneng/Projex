@@ -14,7 +14,8 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import logo from "../assets/PROJEX.png";
+import { GoogleLogin } from "@react-oauth/google";
+import logo from "../assets/projex.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -23,7 +24,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -71,10 +72,8 @@ export default function Login() {
               navigate('/student/dashboard', { replace: true });
               break;
             case 'ENCADREUR_ACAD':
-              navigate('/encadreur-acad/dashboard', { replace: true });
-              break;
             case 'ENCADREUR_PRO':
-              navigate('/encadreur-pro/dashboard', { replace: true });
+              navigate('/supervisor/dashboard', { replace: true });
               break;
             default:
               navigate('/login', { replace: true });
@@ -92,6 +91,43 @@ export default function Login() {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError("");
+    setLoading(true);
+    try {
+      const result = await googleLogin(credentialResponse.credential);
+      if (result.success) {
+        if (result.flow === "LOGIN") {
+          // Redirection selon le rôle
+          const role = (result.user.role || "").toUpperCase();
+          switch (role) {
+            case "ADMIN":
+              navigate("/admin/dashboard", { replace: true });
+              break;
+            case "ETUDIANT":
+              navigate("/student/dashboard", { replace: true });
+              break;
+            case 'ENCADREUR_ACAD':
+            case 'ENCADREUR_PRO':
+              navigate('/supervisor/dashboard', { replace: true });
+              break;
+            default:
+              navigate("/", { replace: true });
+          }
+        } else if (result.flow === "REGISTER") {
+          // Rediriger vers l'inscription avec les données Google
+          navigate("/register", { state: { googleData: result.googleData } });
+        }
+      } else {
+        setError(result.error || "Erreur lors de l'authentification Google.");
+      }
+    } catch {
+      setError("Une erreur est survenue avec Google OAuth.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#EEF3FA] flex items-center justify-center px-4 py-8 sm:px-6">
       <div className="w-full max-w-6xl grid lg:grid-cols-[1.1fr_0.9fr] rounded-[34px] overflow-hidden border border-[#D9E2F1] bg-white shadow-[0_25px_80px_rgba(15,23,42,0.12)]">
@@ -104,7 +140,7 @@ export default function Login() {
             <div className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm">
               <img src={logo} alt="PROJEX" className="h-10 w-auto" />
               <div>
-                <p className="text-sm font-semibold tracking-wide">PROJEX</p>
+             
                 <p className="text-xs text-white/75">
                   Plateforme de gestion académique
                 </p>
@@ -271,6 +307,28 @@ export default function Login() {
                   </>
                 )}
               </button>
+
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-[#FCFDFE] px-4 text-slate-400 font-medium">Ou continuer avec</span>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError("La connexion Google a échoué.")}
+                  useOneTap
+                  theme="outline"
+                  shape="pill"
+                  size="large"
+                  text="continue_with"
+                  width="360"
+                />
+              </div>
             </form>
 
             <div className="mt-8 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">

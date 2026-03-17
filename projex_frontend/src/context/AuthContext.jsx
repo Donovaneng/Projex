@@ -1,8 +1,21 @@
 import { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
+/**
+ * Contexte d'authentification pour fournir l'utilisateur actuel et
+ * les méthodes de gestion de session (login, register, logout)
+ * à l'ensemble de l'application.
+ */
 export const AuthContext = createContext(null);
 
+/**
+ * Fournisseur du contexte d'authentification.
+ * Gère l'état global de l'utilisateur et gère les appels API 
+ * liés à l'authentification.
+ * 
+ * @param {Object} props
+ * @param {React.ReactNode} props.children Les composants enfants qui auront accès au contexte.
+ */
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,23 +23,33 @@ export const AuthProvider = ({ children }) => {
   // Vérifier si un utilisateur est déjà connecté au chargement
   useEffect(() => {
 
+    let isMounted = true;
+
+    /**
+     * Appelle l'API pour récupérer les informations de l'utilisateur
+     * actuellement authentifié (via les cookies/sessions).
+     */
     const checkAuth = async () => {
 
       try {
-
+        // NOTE: Une erreur 401 (Unauthorized) ici est NORMALE si vous n'êtes pas connecté.
         const response = await api.get('/me');
 
-        const loggedUser = response.data.user;
+        if (isMounted) {
+          setUser(response.data.user);
+        }
 
-        setUser(loggedUser);
+      } catch {
 
-      } catch{
-
-        setUser(null);
+        if (isMounted) {
+          setUser(null);
+        }
 
       } finally {
 
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
 
       }
 
@@ -34,8 +57,18 @@ export const AuthProvider = ({ children }) => {
 
     checkAuth();
 
+    return () => {
+      isMounted = false;
+    };
+
   }, []);
 
+  /**
+   * Connecte l'utilisateur.
+   * @param {string} email 
+   * @param {string} password 
+   * @returns {Promise<{success: boolean, user?: Object, error?: string}>} Résultat de la tentative.
+   */
   const login = async (email, password) => {
     try {
       const response = await api.post('/login', { email, password });
@@ -49,6 +82,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Gère l'authentification via Google
+   */
+  const googleLogin = async (credential) => {
+    try {
+      const response = await api.post('/auth/google', { credential });
+      if (response.data.flow === 'LOGIN') {
+        setUser(response.data.user);
+        return { success: true, flow: 'LOGIN', user: response.data.user };
+      } else {
+        return { success: true, flow: 'REGISTER', googleData: response.data.googleData };
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.error || 'Erreur lors de l\'authentification Google' 
+      };
+    }
+  };
+
+  /**
+   * Inscrit un nouvel utilisateur (et le met en attente de validation
+   * par un administrateur selon son rôle).
+   * @param {Object} userData Les données du formulaire d'inscription.
+   * @returns {Promise<{success: boolean, message?: string, error?: string}>}
+   */
   const register = async (userData) => {
     try {
       const response = await api.post('/register', userData);
@@ -61,6 +120,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /**
+   * Déconnecte l'utilisateur et détruit sa session côté serveur.
+   */
   const logout = async () => {
     try {
       await api.post('/logout');
@@ -72,7 +134,9 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    setUser,
     login,
+    googleLogin,
     register,
     logout,
     loading
@@ -80,3 +144,4 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+

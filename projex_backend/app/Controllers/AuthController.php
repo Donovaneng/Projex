@@ -18,7 +18,8 @@ final class AuthController
     $password = $input["password"] ?? "";
 
     // DEBUG: Log temporaire
-    error_log("DEBUG AuthController::login - Email: '$email', Password length: " . strlen($password));
+    error_log("DEBUG AuthController::login - RAW JSON: " . $inputJSON);
+    error_log("DEBUG AuthController::login - Email reçu: '$email', Mdp reçu: '$password'");
 
     if ($email === "" || $password === "") {
       http_response_code(400);
@@ -28,13 +29,22 @@ final class AuthController
 
     $user = User::findByEmail($pdo, $email);
 
-    if (!$user || !password_verify($password, $user["mot_de_passe"])) {
+    if (!$user) {
+      error_log("DEBUG AuthController::login - Utilisateur introuvable pour l'email: $email");
       http_response_code(401);
-      echo json_encode(["error" => "Identifiants invalides"]);
+      echo json_encode(["error" => "Identifiants invalides (email)"]);
+      return;
+    }
+
+    if (!password_verify($password, $user["mot_de_passe"])) {
+      error_log("DEBUG AuthController::login - Mot de passe incorrect pour: $email");
+      http_response_code(401);
+      echo json_encode(["error" => "Identifiants invalides (mdp)"]);
       return;
     }
 
     if ((int)$user["actif"] !== 1) {
+      error_log("DEBUG AuthController::login - Compte inactif pour: $email");
       http_response_code(403);
       echo json_encode(["error" => "Compte non activé par l’admin"]);
       return;
@@ -188,7 +198,81 @@ final class AuthController
 
     // 7) Message succès
     http_response_code(201); // Created
-    echo json_encode(["message" => "Compte créé ✅. En attente de validation par l’administrateur."]);
+    echo json_encode(["message" => "Compte créé . En attente de validation par l’administrateur."]);
+  }
+
+  /**
+   * Identifie ou initialise un utilisateur via Google OAuth2
+   */
+  public static function googleAuth(PDO $pdo): void
+  {
+      header("Content-Type: application/json");
+      $input = json_decode(file_get_contents('php://input'), true);
+      $idToken = $input["credential"] ?? "";
+
+      if ($idToken === "") {
+          http_response_code(400);
+          echo json_encode(["error" => "Token Google manquant"]);
+          return;
+      }
+
+      // Utiliser cURL au lieu de file_get_contents
+      $url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . urlencode($idToken);
+      
+      $ch = curl_init();
+      curl_setopt($ch, CURLOPT_URL, $url);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+      curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+      $response = curl_exec($ch);
+      $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+      curl_close($ch);
+
+      if (!$response || $httpCode !== 200) {
+          http_response_code(401);
+          echo json_encode(["error" => "Session Google invalide ou expirée"]);
+          return;
+      }
+
+      $payload = json_decode($response, true);
+      $email = strtolower($payload["email"] ?? "");
+
+      if ($email === "" || !($payload["email_verified"] ?? false)) {
+          http_response_code(401);
+          echo json_encode(["error" => "Email Google non vérifié"]);
+          return;
+      }
+
+      $user = User::findByEmail($pdo, $email);
+
+      if ($user) {
+          if ((int)$user["actif"] !== 1) {
+              http_response_code(403);
+              echo json_encode(["error" => "Compte existant mais non encore activé par l'admin"]);
+              return;
+          }
+
+          unset($user["mot_de_passe"]);
+          $_SESSION["user"] = $user;
+          $_SESSION["user_id"] = (int)$user["id"];
+
+          echo json_encode([
+              "message" => "Connexion Google réussie",
+              "user" => $user,
+              "flow" => "LOGIN"
+          ]);
+      } else {
+          echo json_encode([
+              "flow" => "REGISTER",
+              "googleData" => [
+                  "email" => $email,
+                  "nom" => $payload["family_name"] ?? "",
+                  "prenom" => $payload["given_name"] ?? "",
+                  "picture" => $payload["picture"] ?? ""
+              ]
+          ]);
+      }
+
   }
 
   public static function logout(): void

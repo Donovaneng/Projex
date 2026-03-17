@@ -54,7 +54,7 @@ final class TaskController
 
     Task::create($pdo, $projectId, $assignedTo, $createdBy, $titre, $description, $dueDate);
 
-    header("Location: /projex/public/tasks/project?project_id=" . $projectId);
+    // Pas de redirection header
     exit;
   }
 
@@ -113,9 +113,62 @@ final class TaskController
 
     Task::updateStatus($pdo, $taskId, $status);
 
-    header("Location: /projex/public/tasks/student");
+    // Pas de redirection header
     exit;
   }
 
-  
+  public static function apiCreate(PDO $pdo): void
+  {
+      AuthMiddleware::handle();
+      $user = $_SESSION["user"];
+      $input = json_decode(file_get_contents('php://input'), true);
+      
+      $projectId = (int)($input["project_id"] ?? 0);
+      $assignedTo = (int)($input["assigned_to"] ?? $user["id"]);
+      $titre = trim($input["titre"] ?? "");
+      $description = trim($input["description"] ?? "");
+      $dueDate = $input["due_date"] ?? null;
+
+      if ($projectId <= 0 || $titre === "") {
+          http_response_code(400);
+          echo json_encode(["error" => "Champs obligatoires manquants"]);
+          return;
+      }
+
+      Task::create($pdo, $projectId, (int)$assignedTo, (int)$user["id"], $titre, $description, $dueDate);
+      
+      // Notify the assigned student
+      Notification::create(
+          $pdo,
+          (int)$assignedTo,
+          "Nouvelle tâche assignée",
+          "Une nouvelle tâche '" . $titre . "' vous a été assignée.",
+          "/student/tasks",
+          "TASK",
+          $projectId
+      );
+
+      header("Content-Type: application/json");
+      echo json_encode(["message" => "Tâche créée avec succès"]);
+  }
+
+  public static function apiUpdateStatus(PDO $pdo, ?int $taskId = null): void
+  {
+      AuthMiddleware::handle();
+      $input = json_decode(file_get_contents('php://input'), true);
+      $id = $taskId ?? (int)($input["task_id"] ?? 0);
+      $status = $input["status"] ?? "";
+
+      $allowed = ["A_FAIRE", "EN_COURS", "TERMINE", "BLOQUE"];
+      if ($taskId <= 0 || !in_array($status, $allowed, true)) {
+          http_response_code(400);
+          echo json_encode(["error" => "Données invalides"]);
+          return;
+      }
+
+      Task::updateStatus($pdo, $taskId, $status);
+      
+      header("Content-Type: application/json");
+      echo json_encode(["message" => "Statut mis à jour"]);
+  }
 }

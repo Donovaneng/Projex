@@ -5,9 +5,11 @@ final class Router
 {
   private array $routesGET = [];
   private array $routesPOST = [];
+  private array $routesPUT = [];
+  private array $routesDELETE = [];
 
   /**
-   * Enregistrer une route GET (affichage d'une page)
+   * Enregistrer une route GET
    */
   public function get(string $path, callable $handler): void
   {
@@ -15,7 +17,7 @@ final class Router
   }
 
   /**
-   * Enregistrer une route POST (traitement d'un formulaire)
+   * Enregistrer une route POST
    */
   public function post(string $path, callable $handler): void
   {
@@ -23,25 +25,60 @@ final class Router
   }
 
   /**
+   * Enregistrer une route PUT
+   */
+  public function put(string $path, callable $handler): void
+  {
+    $this->routesPUT[$this->normalize($path)] = $handler;
+  }
+
+  /**
+   * Enregistrer une route DELETE
+   */
+  public function delete(string $path, callable $handler): void
+  {
+    $this->routesDELETE[$this->normalize($path)] = $handler;
+  }
+
+  /**
    * Exécuter la route demandée
-   * - choisit GET ou POST selon la requête
-   * - lance le handler correspondant
    */
   public function dispatch(string $method, string $path): void
   {
     $path = $this->normalize($path);
 
-    $table = ($method === "POST") ? $this->routesPOST : $this->routesGET;
+    $table = match ($method) {
+      "POST" => $this->routesPOST,
+      "PUT" => $this->routesPUT,
+      "DELETE" => $this->routesDELETE,
+      default => $this->routesGET,
+    };
 
-    if (!isset($table[$path])) {
-      http_response_code(404);
-      echo "404 - Route introuvable : " . htmlspecialchars($path);
+    // 1. Recherche d'un match exact
+    if (isset($table[$path])) {
+      $handler = $table[$path];
+      $handler();
       return;
     }
 
-    // Exécute la fonction associée à la route
-    $handler = $table[$path];
-    $handler();
+    // 2. Recherche d'un match dynamique (ex: /api/users/:id)
+    foreach ($table as $routePath => $handler) {
+      // On utilise # comme délimiteur pour éviter d'échapper les / (car preg_quote les échappe)
+      $pattern = preg_quote($routePath, '#');
+      // preg_quote échappe ':' par '\:'. On le remplace par un groupe de capture.
+      $pattern = preg_replace('/\\\\:([a-zA-Z0-9_]+)/', '([^/]+)', $pattern);
+      $pattern = "#^" . $pattern . "$#";
+
+      if (preg_match($pattern, $path, $matches)) {
+        array_shift($matches); // Enlever le match complet
+        // Appeler le handler avec les paramètres capturés
+        call_user_func_array($handler, $matches);
+        return;
+      }
+    }
+
+    http_response_code(404);
+    echo "404 - Route introuvable : " . htmlspecialchars($path);
   }
 
   /**

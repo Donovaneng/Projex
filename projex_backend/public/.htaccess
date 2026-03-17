@@ -2,7 +2,7 @@
 RewriteEngine On
 
 # Base du dossier (si ton projet est dans /projex)
-RewriteBase /projex/public/
+RewriteBase /projex/projex_backend/public/
 
 # Si le fichier ou dossier demandé existe vraiment, on le laisse passer
 RewriteCond %{REQUEST_FILENAME} -f [OR]

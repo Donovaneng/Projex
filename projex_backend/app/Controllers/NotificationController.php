@@ -5,67 +5,101 @@ require_once __DIR__ . '/../Models/Notification.php';
 
 final class NotificationController
 {
+  /**
+   * Liste toutes les notifications de l'utilisateur connecté (JSON)
+   */
   public static function index(PDO $pdo): void
   {
     AuthMiddleware::handle();
+    header("Content-Type: application/json");
 
-    $user = $_SESSION["user"] ?? [];
-    $userId = (int)($user["id"] ?? 0);
-
+    $userId = (int)$_SESSION["user"]["id"];
     $items = Notification::byUser($pdo, $userId);
+    $unreadCount = Notification::countUnread($pdo, $userId);
 
-    View::render("notifications/index", [
-      "title" => "Mes notifications",
-      "items" => $items,
-      "pdo" => $pdo
+    echo json_encode([
+      "notifications" => $items,
+      "unread_count" => $unreadCount
     ]);
   }
 
-  public static function read(PDO $pdo): void
+  /**
+   * Marquer une notification comme lue
+   */
+  public static function read(PDO $pdo, int $id): void
   {
     AuthMiddleware::handle();
+    header("Content-Type: application/json");
 
-    $user = $_SESSION["user"] ?? [];
-    $userId = (int)($user["id"] ?? 0);
-    $id = (int)($_POST["id"] ?? 0);
+    $userId = (int)$_SESSION["user"]["id"];
+    Notification::markAsRead($pdo, $id, $userId);
 
-    if ($id > 0) {
-      Notification::markAsRead($pdo, $id, $userId);
-    }
-
-    header("Location: /projex/public/notifications");
-    exit;
+    echo json_encode(["success" => true, "message" => "Notification marquée comme lue"]);
   }
 
+  /**
+   * Marquer toutes les notifications comme lues
+   */
+  public static function readAll(PDO $pdo): void
+  {
+    AuthMiddleware::handle();
+    header("Content-Type: application/json");
+
+    $userId = (int)$_SESSION["user"]["id"];
+    Notification::markAllAsRead($pdo, $userId);
+
+    echo json_encode(["success" => true, "message" => "Toutes les notifications sont lues"]);
+  }
+
+  /**
+   * Supprimer une notification
+   */
+  public static function delete(PDO $pdo, int $id): void
+  {
+    AuthMiddleware::handle();
+    header("Content-Type: application/json");
+
+    $userId = (int)$_SESSION["user"]["id"];
+    Notification::delete($pdo, $id, $userId);
+
+    echo json_encode(["success" => true, "message" => "Notification supprimée"]);
+  }
+
+  /**
+   * Supprimer toutes les notifications
+   */
+  public static function deleteAll(PDO $pdo): void
+  {
+    AuthMiddleware::handle();
+    header("Content-Type: application/json");
+
+    $userId = (int)$_SESSION["user"]["id"];
+    Notification::deleteAll($pdo, $userId);
+
+    echo json_encode(["success" => true, "message" => "Toutes les notifications sont supprimées"]);
+  }
+
+  /**
+   * Route legacy pour open/redirect (optionnel, on peut le garder pour les liens directs)
+   */
   public static function open(PDO $pdo): void
   {
     AuthMiddleware::handle();
-
-    $user = $_SESSION["user"] ?? [];
-    $userId = (int)($user["id"] ?? 0);
+    $userId = (int)$_SESSION["user"]["id"];
     $id = (int)($_GET["id"] ?? 0);
 
     if ($id <= 0) {
-      header("Location: /projex/public/notifications");
+      header("Location: /notifications");
       exit;
     }
 
-    $stmt = $pdo->prepare("
-      SELECT * FROM notifications
-      WHERE id = ? AND user_id = ?
-      LIMIT 1
-    ");
+    $stmt = $pdo->prepare("SELECT link_url FROM notifications WHERE id = ? AND user_id = ? LIMIT 1");
     $stmt->execute([$id, $userId]);
     $notif = $stmt->fetch();
 
-    if (!$notif) {
-      header("Location: /projex/public/notifications");
-      exit;
-    }
-
     Notification::markAsRead($pdo, $id, $userId);
 
-    $target = $notif["link_url"] ?? "/projex/public/notifications";
+    $target = $notif["link_url"] ?? "/notifications";
     header("Location: " . $target);
     exit;
   }

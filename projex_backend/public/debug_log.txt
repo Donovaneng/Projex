@@ -1,0 +1,17 @@
+[2026-03-14 10:43:14] ENTERED uploadAvatar method
+[2026-03-14 10:43:14] File error or missing. Code: MISSING
+[2026-03-14 10:43:22] ENTERED uploadAvatar method
+[2026-03-14 10:43:22] File error or missing. Code: MISSING
+[2026-03-14 10:48:47] ENTERED uploadAvatar method
+[2026-03-14 10:48:47] Content-Type: application/json
+[2026-03-14 10:48:47] FILES keys: 
+[2026-03-14 10:48:47] POST keys: 
+[2026-03-14 10:48:47] File 'avatar' error or missing. Code: MISSING
+[2026-03-14 10:48:47] Full FILES array: []
+[2026-03-14 10:50:23] ENTERED uploadAvatar method
+[2026-03-14 10:50:23] Content-Type: multipart/form-data; boundary=----WebKitFormBoundary0PZsFlRZVCByatGV
+[2026-03-14 10:50:23] FILES keys: avatar
+[2026-03-14 10:50:23] POST keys: 
+[2026-03-14 10:50:23] User 1 is uploading download (58).jpg (image/jpeg) size: 200117
+[2026-03-14 10:50:23] Target: C:\xampp\htdocs\projex\projex_backend\app\Controllers/../../public/uploads/avatars/avatar_1_1773481823.jpg
+[2026-03-14 10:50:23] SUCCESS. DB updating with path: /uploads/avatars/avatar_1_1773481823.jpg

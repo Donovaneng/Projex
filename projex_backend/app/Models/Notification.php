@@ -53,4 +53,32 @@ final class Notification
 
     return (int)($row["total"] ?? 0);
   }
+
+  public static function markAllAsRead(PDO $pdo, int $userId): void
+  {
+    $stmt = $pdo->prepare("
+      UPDATE notifications
+      SET is_read = 1
+      WHERE user_id = ? AND is_read = 0
+    ");
+    $stmt->execute([$userId]);
+  }
+
+  public static function delete(PDO $pdo, int $id, int $userId): void
+  {
+    $stmt = $pdo->prepare("
+      DELETE FROM notifications
+      WHERE id = ? AND user_id = ?
+    ");
+    $stmt->execute([$id, $userId]);
+  }
+
+  public static function deleteAll(PDO $pdo, int $userId): void
+  {
+    $stmt = $pdo->prepare("
+      DELETE FROM notifications
+      WHERE user_id = ?
+    ");
+    $stmt->execute([$userId]);
+  }
 }

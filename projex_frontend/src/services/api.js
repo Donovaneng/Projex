@@ -1,18 +1,24 @@
 import axios from 'axios';
 
-// Instance configuree pour pointer vers le backend PHP
-
+/**
+ * Instance configurée d'Axios pour communiquer avec le backend PHP.
+ * Inclut la gestion des identifiants (cookies/sessions) via `withCredentials`.
+ * @type {import('axios').AxiosInstance}
+ */
 const api = axios.create({
-  baseURL: "http://localhost:8000/api",
+  baseURL: "http://localhost/projex/projex_backend/public/api",
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
   },
   withCredentials: true,
 });
 
-
-// Intercepteur pour gérer les erreurs d'authentification globalement
+/**
+ * Intercepteur de réponse global.
+ * Gère automatiquement les erreurs d'authentification (401 Non Autorisé).
+ * Redirige l'utilisateur vers la page de connexion, sauf si la requête
+ * était pour vérifier la session au démarrage (`/me`) ou s'il est déjà sur `/login`.
+ */
 api.interceptors.response.use(
   (response) => response,
   (error) => {

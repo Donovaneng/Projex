@@ -60,4 +60,24 @@ final class ProfessionalEvaluation
 
     return $stmt->fetchAll();
   }
+  public static function allBySupervisor(PDO $pdo, int $supervisorId): array
+  {
+    $stmt = $pdo->prepare("
+      SELECT e.*, p.titre as projet_titre, u.nom as etudiant_nom, u.prenom as etudiant_prenom
+      FROM evaluation_professionnelle e
+      JOIN projects p ON p.id = e.projet_id
+      JOIN users u ON u.id = e.etudiant_id
+      WHERE e.encadreur_pro_id = ?
+      ORDER BY e.created_at DESC
+    ");
+    $stmt->execute([$supervisorId]);
+    return $stmt->fetchAll();
+  }
+
+  public static function byProject(PDO $pdo, int $projectId): ?array
+  {
+      $stmt = $pdo->prepare("SELECT * FROM evaluation_professionnelle WHERE projet_id = ? LIMIT 1");
+      $stmt->execute([$projectId]);
+      return $stmt->fetch() ?: null;
+  }
 }
