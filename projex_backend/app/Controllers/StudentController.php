@@ -251,6 +251,7 @@ final class StudentController
       $titre = $input["titre"] ?? "";
       $description = $input["description"] ?? "";
       $date_fin = $input["date_fin"] ?? null;
+      $categorie_id = isset($input["categorie_id"]) ? (int)$input["categorie_id"] : null;
 
       if (!$titre || !$description) {
           http_response_code(400);
@@ -259,7 +260,7 @@ final class StudentController
       }
 
       // Propose project: create project entry
-      $projectId = Project::create($pdo, $titre, $description, date("Y-m-d"), $date_fin, (int)$user["id"], "ETUDIANT");
+      $projectId = Project::createByStudent($pdo, $titre, $description, (int)$user["id"], $categorie_id);
       
       // Affect to the student
       Project::assign($pdo, $projectId, (int)$user["id"], null, null);

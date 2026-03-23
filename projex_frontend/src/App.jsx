@@ -26,6 +26,9 @@ import SupervisorDashboard from "./pages/supervisor/SupervisorDashboard";
 import SupervisorProjects from "./pages/supervisor/Projects";
 import SupervisorProposals from "./pages/supervisor/Proposals";
 import SupervisorEvaluations from "./pages/supervisor/Evaluations";
+import SupervisorDeliverables from "./pages/supervisor/Deliverables";
+import SupervisorHelp from "./pages/supervisor/Help";
+import GlobalMessages from "./pages/Messages";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 
@@ -75,13 +78,16 @@ function App() {
             <Route path="/supervisor/dashboard" element={<SupervisorDashboard />} />
             <Route path="/supervisor/proposals" element={<SupervisorProposals />} />
             <Route path="/supervisor/projects" element={<SupervisorProjects />} />
+            <Route path="/supervisor/deliverables" element={<SupervisorDeliverables />} />
             <Route path="/supervisor/evaluations" element={<SupervisorEvaluations />} />
+            <Route path="/supervisor/help" element={<SupervisorHelp />} />
             <Route path="/supervisor/soutenances" element={<AdminSoutenances />} /> {/* On pourra affiner avec des permissions internes */}
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["ADMIN", "ETUDIANT", "ENCADREUR_ACAD", "ENCADREUR_PRO"]} />}>
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/messages" element={<GlobalMessages />} />
           </Route>
 
           <Route path="/unauthorized" element={<Unauthorized />} />

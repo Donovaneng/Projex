@@ -46,6 +46,7 @@ export default function Notifications() {
     try {
       await notificationService.markAsRead(id);
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error(err);
     }
@@ -55,6 +56,7 @@ export default function Notifications() {
     try {
       await notificationService.markAllAsRead();
       setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error(err);
     }
@@ -64,6 +66,7 @@ export default function Notifications() {
     try {
       await notificationService.delete(id);
       setNotifications(notifications.filter(n => n.id !== id));
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error(err);
     }
@@ -74,6 +77,7 @@ export default function Notifications() {
     try {
       await notificationService.deleteAll();
       setNotifications([]);
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error(err);
     }
@@ -84,7 +88,7 @@ export default function Notifications() {
     : notifications;
 
   if (loading) return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mes Notifications">
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader size="lg" text="Chargement de vos notifications..." />
       </div>
@@ -92,7 +96,7 @@ export default function Notifications() {
   );
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mes Notifications">
       <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>

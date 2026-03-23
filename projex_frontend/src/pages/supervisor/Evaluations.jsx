@@ -16,9 +16,12 @@ import {
   ChevronRight,
   MessageSquare,
   History as HistoryIcon,
-  Check
+  Check,
+  FolderKanban,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { formatFileUrl } from '../../utils/file';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import supervisorService from '../../services/supervisorService';
 import Card from '../../components/ui/Card';
@@ -129,7 +132,7 @@ export default function SupervisorEvaluations() {
     : '0.0';
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Évaluations du Projet">
       <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500">
         
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -333,7 +336,11 @@ export default function SupervisorEvaluations() {
         >
           <div className="bg-[#0B1C3F] p-10 text-white relative overflow-hidden">
              <h2 className="text-3xl font-black relative z-10">Nouvelle <span className="text-[#1E4AA8]">Évaluation</span></h2>
-             <p className="text-blue-100/60 font-medium mt-2 relative z-10">Attribuez une note rapide pour ce cycle académique.</p>
+             <p className="text-blue-100/60 font-medium mt-2 relative z-10">
+               {isPro 
+                 ? "Évaluez l'intégration en milieu pro et le comportement de l'étudiant." 
+                 : "Attribuez une note pour ce cycle académique basée sur la rigueur technique."}
+             </p>
              <Star size={120} className="absolute -right-10 -bottom-10 text-white/5 opacity-50 rotate-12" />
           </div>
 
@@ -355,6 +362,40 @@ export default function SupervisorEvaluations() {
                   ))}
                 </select>
              </div>
+
+             <div className={`p-4 rounded-2xl border-2 border-dashed ${isPro ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-blue-50 border-blue-100 text-blue-800'} text-[11px] font-bold leading-relaxed`}>
+                {isPro 
+                  ? "Note : En tant que Pro, concentrez-vous sur l'autonomie, la communication et la ponctualité de l'étudiant." 
+                  : "Note : En tant qu'Académique, privilégiez la pertinence de la solution et la qualité de la documentation technique."}
+             </div>
+
+             {newEval.projet_id && (
+               <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Livrables du Projet</label>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    {projects.find(p => p.id == newEval.projet_id)?.livrables?.length > 0 ? (
+                      projects.find(p => p.id == newEval.projet_id).livrables.map(l => (
+                        <div key={l.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <FileText size={14} className="text-[#1E4AA8] shrink-0" />
+                            <span className="text-xs font-bold text-[#0B1C3F] truncate">{l.titre}</span>
+                          </div>
+                          <a 
+                            href={formatFileUrl(l.file_path)} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="p-1.5 text-[#1E4AA8] hover:bg-blue-100 rounded-lg transition-colors"
+                          >
+                            <Download size={14} />
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[10px] text-slate-400 italic">Aucun livrable déposé pour ce projet.</p>
+                    )}
+                  </div>
+               </div>
+             )}
 
               {!isPro ? (
                 <div className="grid grid-cols-2 gap-6">

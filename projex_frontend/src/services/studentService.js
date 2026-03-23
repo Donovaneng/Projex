@@ -64,10 +64,50 @@ const studentService = {
   // Mettre à jour le statut d'une tâche
   updateTaskStatus: async (taskId, status) => {
     try {
-      const response = await api.put(`/student/tasks/${taskId}/status`, { status });
+      const response = await api.put(`/tasks/${taskId}/status`, { status });
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors de la mise à jour de la tâche' };
+    }
+  },
+
+  // Récupérer les tâches d'un projet spécifique
+  getProjectTasks: async (projectId) => {
+    try {
+      const response = await api.get(`/projects/${projectId}/tasks`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la récupération des tâches du projet' };
+    }
+  },
+
+  // Créer une tâche pour un projet
+  createTask: async (taskData) => {
+    try {
+      const response = await api.post('/student/tasks/create', taskData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la création de la tâche' };
+    }
+  },
+
+  // Supprimer une tâche
+  deleteTask: async (taskId) => {
+    try {
+      const response = await api.delete(`/tasks/${taskId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la suppression de la tâche' };
+    }
+  },
+
+  // Récupérer la chronologie du projet
+  getProjectTimeline: async (projectId) => {
+    try {
+      const response = await api.get(`/student/projects/${projectId}/timeline`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la récupération de la chronologie' };
     }
   },
 
@@ -172,6 +212,16 @@ const studentService = {
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors de la mise à jour du livrable' };
+    }
+  },
+
+  // Récupérer les catégories de projets
+  getCategories: async () => {
+    try {
+      const response = await api.get('/categories');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la récupération des catégories' };
     }
   },
 };

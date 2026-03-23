@@ -3,7 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children, pageTitle }) {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -23,7 +23,7 @@ export default function DashboardLayout({ children }) {
       <Sidebar role={user?.role} isOpen={sidebarOpen} onClose={closeSidebar} />
       
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <Navbar user={user} onMenuClick={toggleSidebar} />
+        <Navbar user={user} onMenuClick={toggleSidebar} pageTitle={pageTitle} />
         <main className="flex-1 overflow-y-auto bg-[#F8FAFC]">
           <div className="w-full h-full p-4 sm:p-6 lg:p-8">
             {children}

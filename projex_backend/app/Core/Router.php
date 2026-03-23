@@ -78,7 +78,8 @@ final class Router
     }
 
     http_response_code(404);
-    echo "404 - Route introuvable : " . htmlspecialchars($path);
+    $registered = array_keys($table);
+    echo "404 - Route introuvable : [" . $method . "] " . htmlspecialchars($path) . ". Routes enregistrées pour " . $method . " : " . implode(', ', $registered);
   }
 
   /**

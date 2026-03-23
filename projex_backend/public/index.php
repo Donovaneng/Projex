@@ -17,7 +17,7 @@ if (in_array($origin, $allowedOrigins, true)) {
     // Fallback if needed for local test, but credentials require exact origin match (no *)
     header("Access-Control-Allow-Origin: http://localhost:5173"); 
 }
-header("Cross-Origin-Opener-Policy: same-origin-allow-popups");
+header("Cross-Origin-Opener-Policy: unsafe-none");
 header("Cross-Origin-Embedder-Policy: unsafe-none");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -64,7 +64,7 @@ $router = new Router();
 
 //Récupération de la route demandée
 $uri  = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
-$base = dirname($_SERVER['SCRIPT_NAME']); // Détection dynamique du dossier (ex: /projex/projex_backend/public)
+$base = dirname($_SERVER['SCRIPT_NAME']); 
 $path = str_starts_with($uri, $base) ? substr($uri, strlen($base)) : $uri;
 if ($path === "" || $path === false) $path = "/";
 
@@ -99,6 +99,33 @@ $router->post("/api/logout", function () {
 // Google Auth (API POST)
 $router->post("/api/auth/google", function () use ($pdo) {
   AuthController::googleAuth($pdo);
+});
+
+// Ping test
+$router->get("/api/ping", function () {
+  header("Content-Type: application/json");
+  echo json_encode(["status" => "pong"]);
+});
+
+// Messagerie Globale (Support)
+$router->get("/api/support", function () use ($pdo) {
+    ChatController::getSupportMessages($pdo);
+});
+
+$router->get("/api/support/conversations", function () use ($pdo) {
+    ChatController::getConversations($pdo);
+});
+
+$router->post("/api/support", function () use ($pdo) {
+    ChatController::sendSupportMessage($pdo);
+});
+
+// Alias pour compatibilité
+$router->get("/api/messages/support", function () use ($pdo) {
+    ChatController::getSupportMessages($pdo);
+});
+$router->post("/api/messages/support", function () use ($pdo) {
+    ChatController::sendSupportMessage($pdo);
 });
 
 $router->get("/api/admin/users", function () use ($pdo) {
@@ -144,6 +171,21 @@ $router->post("/api/admin/periods", function () use ($pdo) {
     SystemController::createPeriod($pdo);
 });
 
+$router->delete("/api/admin/periods/:id", function ($id) use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    SystemController::deletePeriod($pdo, (int)$id);
+});
+
+$router->post("/api/admin/periods/:id/toggle", function ($id) use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    SystemController::togglePeriod($pdo, (int)$id);
+});
+
+$router->post("/api/admin/periods/:id/archive", function ($id) use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    SystemController::archivePeriod($pdo, (int)$id);
+});
+
 $router->put("/api/admin/periods/:id/toggle", function ($id) use ($pdo) {
     RoleMiddleware::require("ADMIN");
     SystemController::togglePeriod($pdo, (int)$id);
@@ -182,6 +224,13 @@ $router->post("/api/admin/system/backup", function () use ($pdo) {
 $router->post("/api/admin/system/report", function () use ($pdo) {
     RoleMiddleware::require("ADMIN");
     SystemController::generateGlobalReport($pdo);
+});
+
+// Categories (All Auth)
+$router->get("/api/categories", function () use ($pdo) {
+    AuthMiddleware::handle();
+    header("Content-Type: application/json");
+    echo json_encode(["categories" => ProjectCategory::all($pdo)]);
 });
 
 // SOUTENANCES
@@ -308,8 +357,8 @@ $router->get("/api/admin/projects/search", function () use ($pdo) {
 });
 
 $router->get("/api/admin/projects/:id/details", function ($id) use ($pdo) {
-    RoleMiddleware::require("ADMIN");
-    AdminController::getProjectDetails($pdo, (int)$id);
+    RoleMiddleware::require(["ADMIN", "ENCADREUR_ACAD", "ENCADREUR_PRO"]);
+    AdminProjectController::show($pdo, (int)$id);
 });
 
 $router->get("/api/admin/evaluations/all", function () use ($pdo) {
@@ -359,6 +408,23 @@ $router->get("/api/student/tasks", function () use ($pdo) {
 
 $router->post("/api/student/tasks/create", function () use ($pdo) {
     TaskController::apiCreate($pdo);
+});
+
+$router->delete("/api/tasks/:id", function ($id) use ($pdo) {
+    TaskController::apiDelete($pdo, (int)$id);
+});
+
+$router->get("/api/projects/:id/tasks", function ($id) use ($pdo) {
+    TaskController::apiGetProjectTasks($pdo, (int)$id);
+});
+
+$router->get("/api/student/projects/:id/timeline", function ($id) use ($pdo) {
+    AuthMiddleware::handle();
+    SupervisorController::apiGetProjectTimeline($pdo, (int)$id);
+});
+
+$router->put("/api/tasks/:id/status", function ($id) use ($pdo) {
+    TaskController::apiUpdateStatus($pdo, (int)$id);
 });
 
 $router->put("/api/student/tasks/:id/status", function ($id) use ($pdo) {
@@ -446,6 +512,23 @@ $router->get("/api/supervisor/deliverables/pending", function () use ($pdo) {
         JOIN project_assignments pa ON pa.project_id = l.project_id
         WHERE (pa.encadreur_acad_id = ? OR pa.encadreur_pro_id = ?)
         AND l.statut = 'SOUMIS'
+    ");
+    $stmt->execute([(int)$user["id"], (int)$user["id"]]);
+    header("Content-Type: application/json");
+    echo json_encode(["deliverables" => $stmt->fetchAll()]);
+});
+
+$router->get("/api/supervisor/deliverables", function () use ($pdo) {
+    AuthMiddleware::handle();
+    $user = $_SESSION["user"];
+    $stmt = $pdo->prepare("
+        SELECT l.*, u.nom, u.prenom, p.titre AS projet_titre
+        FROM livrables l
+        JOIN users u ON u.id = l.etudiant_id
+        JOIN projects p ON p.id = l.project_id
+        JOIN project_assignments pa ON pa.project_id = l.project_id
+        WHERE (pa.encadreur_acad_id = ? OR pa.encadreur_pro_id = ?)
+        ORDER BY l.submitted_at DESC
     ");
     $stmt->execute([(int)$user["id"], (int)$user["id"]]);
     header("Content-Type: application/json");
@@ -543,6 +626,5 @@ $router->delete("/api/admin/users/:id", function ($id) use ($pdo) {
 });
 
 //Lancer le routeur
-error_log("Dispatched Method: " . $_SERVER["REQUEST_METHOD"] . " Path: " . $path);
 $router->dispatch($_SERVER["REQUEST_METHOD"], $path);
 

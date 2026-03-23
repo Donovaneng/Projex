@@ -21,7 +21,7 @@ final class AuditLog
     public static function all(PDO $pdo, int $limit = 50): array
     {
         $stmt = $pdo->prepare("
-            SELECT a.*, u.nom, u.prenom
+            SELECT a.*, u.nom, u.prenom, u.role
             FROM audit_logs a
             LEFT JOIN users u ON u.id = a.actor_id
             ORDER BY a.created_at DESC

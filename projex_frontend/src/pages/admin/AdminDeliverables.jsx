@@ -29,7 +29,7 @@ export default function AdminDeliverables() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Suivi des Livrables">
         <div className="flex justify-center items-center min-h-[60vh]">
           <Loader size="lg" text="Chargement de tous les livrables..." />
         </div>
@@ -38,7 +38,7 @@ export default function AdminDeliverables() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Suivi des Livrables">
       <div className="max-w-7xl mx-auto space-y-8">
         <header>
           <h1 className="text-3xl font-bold text-[#0B1C3F] flex items-center gap-3">

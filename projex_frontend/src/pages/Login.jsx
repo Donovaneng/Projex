@@ -241,18 +241,9 @@ export default function Login() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between gap-4">
                   <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                     Mot de passe
                   </label>
-
-                  <button
-                    type="button"
-                    className="text-sm font-medium text-[#1E4AA8] transition hover:text-[#173B86] hover:underline"
-                  >
-                    Mot de passe oublié ?
-                  </button>
-                </div>
 
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -278,17 +269,6 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-4 text-sm">
-                <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 text-[#1E4AA8] focus:ring-[#1E4AA8]"
-                  />
-                  <span>Se souvenir de moi</span>
-                </label>
-
-                <span className="text-slate-400">Connexion protégée</span>
-              </div>
 
               <button
                 type="submit"
@@ -321,7 +301,6 @@ export default function Login() {
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={() => setError("La connexion Google a échoué.")}
-                  useOneTap
                   theme="outline"
                   shape="pill"
                   size="large"

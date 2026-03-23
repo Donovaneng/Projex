@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import studentService from '../../services/studentService';
 import Card from '../../components/ui/Card';
@@ -9,6 +10,7 @@ import Input from '../../components/ui/Input';
 import { FolderKanban, Plus, AlertTriangle, CalendarDays, Users } from 'lucide-react';
 
 export default function StudentProjects() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [projects, setProjects] = useState([]);
@@ -19,26 +21,31 @@ export default function StudentProjects() {
   const [newProject, setNewProject] = useState({
     titre: '',
     description: '',
-    date_fin: ''
+    date_fin: '',
+    categorie_id: ''
   });
+
+  const [categories, setCategories] = useState([]);
 
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
   const [editingProjectId, setEditingProjectId] = useState(null);
 
   const [availableProjects, setAvailableProjects] = useState([]);
 
-  const loadProjects = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       setError('');
-      const [ownRes, availRes] = await Promise.all([
+      const [ownRes, availRes, catRes] = await Promise.all([
         studentService.getProjects(),
-        studentService.getAvailableProjects().catch(() => ({ projects: [] }))
+        studentService.getAvailableProjects().catch(() => ({ projects: [] })),
+        studentService.getCategories().catch(() => ({ categories: [] }))
       ]);
       setProjects(ownRes.projects || ownRes || []);
       setAvailableProjects(availRes.projects || availRes || []);
+      setCategories(catRes.categories || []);
     } catch (err) {
-      console.error('Erreur lors du chargement des projets:', err);
+      console.error('Erreur lors du chargement des données:', err);
       setError('Impossible de charger vos projets.');
     } finally {
       setLoading(false);
@@ -46,7 +53,7 @@ export default function StudentProjects() {
   };
 
   useEffect(() => {
-    loadProjects();
+    loadData();
   }, []);
 
   const handleCreateOrUpdateProject = async (e) => {
@@ -61,8 +68,8 @@ export default function StudentProjects() {
         alert('Proposition mise à jour avec succès !');
       }
       setIsModalOpen(false);
-      setNewProject({ titre: '', description: '', date_fin: '' });
-      loadProjects();
+      setNewProject({ titre: '', description: '', date_fin: '', categorie_id: '' });
+      loadData();
     } catch (err) {
       console.error(err);
       alert('Erreur: ' + (err.error || 'Impossible d\'enregistrer le projet.'));
@@ -75,7 +82,7 @@ export default function StudentProjects() {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette proposition ?")) return;
     try {
       await studentService.deleteProposal(projectId);
-      loadProjects();
+      loadData();
     } catch (err) {
       alert(err.error || "Erreur lors de la suppression");
     }
@@ -87,7 +94,8 @@ export default function StudentProjects() {
     setNewProject({
       titre: project.titre || '',
       description: project.description || '',
-      date_fin: project.date_fin ? project.date_fin.substring(0, 10) : ''
+      date_fin: project.date_fin ? project.date_fin.substring(0, 10) : '',
+      categorie_id: project.categorie_id || ''
     });
     setIsModalOpen(true);
   };
@@ -99,7 +107,7 @@ export default function StudentProjects() {
       setLoading(true);
       const res = await studentService.applyToProject(projectId);
       alert(res.message || "Félicitations ! Vous avez été assigné au projet.");
-      loadProjects(); // Recharger pour voir le projet dans "Mes Projets" et qu'il disparaisse des disponibles
+      loadData(); // Recharger pour voir le projet dans "Mes Projets" et qu'il disparaisse des disponibles
     } catch (err) {
       alert(err.error || "Une erreur est survenue lors de la postulation.");
     } finally {
@@ -110,7 +118,7 @@ export default function StudentProjects() {
   const openCreateModal = () => {
     setModalMode('create');
     setEditingProjectId(null);
-    setNewProject({ titre: '', description: '', date_fin: '' });
+    setNewProject({ titre: '', description: '', date_fin: '', categorie_id: '' });
     setIsModalOpen(true);
   };
 
@@ -125,7 +133,7 @@ export default function StudentProjects() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mes Projets">
       <div className="max-w-7xl mx-auto space-y-8">
         
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -174,19 +182,27 @@ export default function StudentProjects() {
               </div>
             ) : (
               projects.map(project => (
-                <Card key={project.id} hover="scale" className="border-slate-200 h-full flex flex-col">
+                <Card 
+                  key={project.id} 
+                  hover="scale" 
+                  className="border-slate-200 h-full flex flex-col cursor-pointer transition-all hover:shadow-xl hover:shadow-[#1E4AA8]/10"
+                  onClick={() => navigate(`/student/projects/${project.id}`)}
+                >
                   <Card.Content className="p-6 flex flex-col flex-1">
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="font-bold text-xl text-[#0B1C3F] leading-tight">
                         {project.titre}
                       </h3>
-                      <span className={`shrink-0 ml-3 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase ${
-                        project.statut === 'EN_COURS' ? 'bg-green-100 text-green-700' : 
-                        project.statut === 'TERMINE' ? 'bg-slate-100 text-slate-700' :
-                        'bg-orange-100 text-orange-700'
-                      }`}>
-                        {project.statut || 'NOUVEAU'}
-                      </span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-slate-100 text-slate-700">
+                          {project.statut || 'NOUVEAU'}
+                        </span>
+                        {project.categorie_label && (
+                           <span className="text-[10px] font-bold text-[#1E4AA8] bg-blue-50 px-2 py-0.5 rounded-md">
+                             {project.categorie_label}
+                           </span>
+                        )}
+                      </div>
                     </div>
                     
                     <p className="text-slate-600 text-sm mb-6 flex-1">
@@ -295,6 +311,20 @@ export default function StudentProjects() {
               onChange={(e) => setNewProject({...newProject, description: e.target.value})}
             />
             
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-700">Catégorie du projet</label>
+              <select 
+                className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E4AA8] outline-none"
+                value={newProject.categorie_id}
+                onChange={(e) => setNewProject({...newProject, categorie_id: e.target.value})}
+              >
+                <option value="">Sélectionner une catégorie (optionnel)</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+
             <Input 
               label="Date limite souhaitée"
               type="date"

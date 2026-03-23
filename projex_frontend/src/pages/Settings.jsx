@@ -68,13 +68,13 @@ export default function Settings() {
     };
 
     if (loading) return (
-        <DashboardLayout>
+        <DashboardLayout pageTitle="Paramètres du Compte">
             <div className="flex justify-center p-12"><Loader text="Chargement des paramètres..." /></div>
         </DashboardLayout>
     );
 
     return (
-        <DashboardLayout>
+        <DashboardLayout pageTitle="Paramètres du Compte">
             <div className="max-w-5xl mx-auto space-y-8 pb-12">
                 <header>
                     <h1 className="text-3xl font-bold text-[#0B1C3F]">Paramètres</h1>

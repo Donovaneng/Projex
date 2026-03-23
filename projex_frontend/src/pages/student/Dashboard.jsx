@@ -111,7 +111,7 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Mon Espace Étudiant">
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader size="lg" text="Chargement de votre espace..." />
         </div>
@@ -120,7 +120,7 @@ export default function StudentDashboard() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mon Espace Étudiant">
       <div className="space-y-8 max-w-7xl mx-auto">
         
         {/* Header */}
@@ -314,13 +314,7 @@ export default function StudentDashboard() {
                                 {completedTasks} tâches terminées sur {projectTasks.length}
                               </p>
                             </div>
-                            <span className={`shrink-0 ml-4 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              project.statut === 'EN_COURS' 
-                                ? 'bg-green-100 text-green-700'
-                                : project.statut === 'EN_ATTENTE'
-                                ? 'bg-orange-100 text-orange-700'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}>
+                            <span className={`shrink-0 ml-4 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700`}>
                               {project.statut?.replace('_', ' ') || 'ACTIF'}
                             </span>
                           </div>
@@ -387,15 +381,7 @@ export default function StudentDashboard() {
                           <div className="flex-1">
                             <h3 className="font-bold text-[#0B1C3F] flex items-center gap-2">
                               {task.titre}
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider ${
-                                task.statut === 'TERMINE' 
-                                  ? 'bg-green-100 text-green-700'
-                                  : task.statut === 'EN_COURS'
-                                  ? 'bg-[#1E4AA8]/10 text-[#1E4AA8]'
-                                  : task.statut === 'BLOQUE'
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-slate-100 text-slate-600'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider bg-slate-100 text-slate-600`}>
                                 {task.statut?.replace('_', ' ') || 'A FAIRE'}
                               </span>
                             </h3>
@@ -522,13 +508,7 @@ export default function StudentDashboard() {
                             <h4 className="font-semibold text-sm text-[#0B1C3F] truncate pr-4">
                               {deliverable.titre}
                             </h4>
-                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              deliverable.statut === 'VALIDE' 
-                                ? 'bg-green-100 text-green-700'
-                                : deliverable.statut === 'REJETE'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-orange-100 text-orange-700'
-                            }`}>
+                            <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-600`}>
                               {deliverable.statut}
                             </span>
                           </div>

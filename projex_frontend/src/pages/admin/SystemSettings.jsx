@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Loader from '../../components/ui/Loader';
-import { Settings, Calendar, Tag, ShieldCheck, Plus, History as HistoryIcon, Clock, Trash2, CheckSquare, FileText } from 'lucide-react';
+import { Settings, Calendar, Tag, ShieldCheck, Plus, History as HistoryIcon, Clock, Trash2, CheckSquare, FileText, Archive } from 'lucide-react';
 
 export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
@@ -76,6 +76,18 @@ export default function SystemSettings() {
       loadData();
     } catch (err) {
       alert("Erreur lors de la mise à jour");
+    }
+  };
+  const handleArchivePeriod = async (periodId) => {
+    if (!window.confirm("Voulez-vous vraiment clore et archiver cette période ? Tous les projets en cours seront marqués comme TERMINÉS.")) return;
+    try {
+      setIsSubmitting(true);
+      await adminService.archivePeriod(periodId);
+      loadData();
+    } catch (err) {
+      alert("Erreur lors de l'archivage");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -166,6 +178,15 @@ export default function SystemSettings() {
                       >
                         <CheckSquare className="h-4 w-4" />
                       </button>
+                      {Number(p.actif) === 1 && (
+                        <button 
+                          onClick={() => handleArchivePeriod(p.id)}
+                          className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                          title="Archiver (clôturer la période)"
+                        >
+                          <Archive className="h-4 w-4" />
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleDeletePeriod(p.id)}
                         className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -289,29 +310,54 @@ export default function SystemSettings() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {auditLogs.map(log => (
-                    <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-[#0B1C3F]">{log.prenom} {log.nom}</div>
-                        <div className="text-[10px] text-slate-400 font-bold uppercase">{log.role}</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-[10px] font-bold uppercase">
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-xs text-slate-600 max-w-[300px] truncate" title={log.details}>
-                          {log.details}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right text-slate-400">
-                        <div className="flex items-center justify-end gap-1.5 text-[10px] font-bold">
-                           <Clock size={12} /> {new Date(log.created_at).toLocaleString('fr-FR')}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {auditLogs.map(log => {
+                    const details = log.details ? JSON.parse(log.details) : null;
+                    const getActionColor = (action) => {
+                       if (action.includes('CREATE') || action.includes('ACTIVATE') || action.includes('APPROVE')) return 'bg-green-100 text-green-700';
+                       if (action.includes('DELETE') || action.includes('REJECT')) return 'bg-red-100 text-red-700';
+                       return 'bg-blue-100 text-blue-700';
+                    };
+                    return (
+                      <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-[#0B1C3F] flex items-center gap-2">
+                             {log.prenom} {log.nom}
+                          </div>
+                          <div className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block mt-1 ${
+                            log.role === 'ADMIN' ? 'bg-red-100 text-red-700' :
+                            log.role?.includes('ENCADREUR') ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {log.role}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${getActionColor(log.action)}`}>
+                            {log.action?.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-[11px] text-slate-600 max-w-[400px]">
+                            <span className="font-bold text-slate-400 mr-2">[{log.entity} #{log.entity_id}]</span>
+                            {details ? Object.entries(details).map(([key, val]) => (
+                              <span key={key} className="inline-block bg-white border border-slate-100 px-1.5 py-0.5 rounded mr-1 mb-1 text-[10px]">
+                                <span className="text-slate-400">{key}:</span> {String(val)}
+                              </span>
+                            )) : <span className="italic text-slate-300">Aucun détail supplémentaire</span>}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex flex-col items-end gap-0.5">
+                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
+                                <Clock size={10} /> {new Date(log.created_at).toLocaleDateString('fr-FR')}
+                             </div>
+                             <div className="text-[10px] font-black text-slate-300 uppercase leading-none">
+                                {new Date(log.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                             </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {auditLogs.length === 0 && (
                     <tr>
                       <td colSpan="4" className="px-6 py-8 text-center text-slate-500 italic">

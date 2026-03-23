@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import adminService from '../../services/adminService';
+import reportService from '../../services/reportService';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Loader from '../../components/ui/Loader';
-import { Calendar, Users, MapPin, GraduationCap, Plus, Trash2, Edit3, Save, X, Info, Clock } from 'lucide-react';
+import { Calendar, Users, MapPin, GraduationCap, Plus, Trash2, Edit3, Save, X, Info, Clock, FileDown } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import DefenseCalendar from '../../components/calendar/DefenseCalendar';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,23 +25,31 @@ export default function AdminSoutenances() {
     projet_id: '',
     date: '',
     salle: '',
-    jury: ''
+    jury_membres: '', // External text notes
+    jury: [] // Structured array of {user_id, external_name, role}
   });
+
+  const [users, setUsers] = useState([]);
+  const [memberToAdd, setMemberToAdd] = useState({ user_id: '', role: 'EXAMINATEUR', external_name: '' });
 
   const [editNote, setEditNote] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedSoutenance, setSelectedSoutenance] = useState(null);
+  const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [sRes, pRes] = await Promise.all([
+      const [sRes, pRes, uRes] = await Promise.all([
         adminService.getSoutenances(),
-        adminService.getProjects()
+        adminService.getProjects(),
+        adminService.getAllUsers().catch(() => ({ users: [] }))
       ]);
       setSoutenances(sRes.soutenances || []);
       // On ne garde que les projets terminés ou en cours pour la soutenance
-      setProjects(pRes.projects?.filter(p => ['TERMINE', 'EN_COURS'].includes(p.statut)) || []);
+      setProjects(pRes.projects?.filter(p => ['TERMINE', 'EN_COURS', 'CLOTURE'].includes(p.statut)) || []);
+      // On garde les encadreurs pour le jury
+      setUsers(uRes.users?.filter(u => ['ENCADREUR_ACAD', 'ENCADREUR_PRO'].includes(u.role)) || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -56,15 +65,22 @@ export default function AdminSoutenances() {
     e.preventDefault();
     try {
       setIsSubmitting(true);
-      await adminService.scheduleSoutenance({
-        ...formData,
-        admin_id: user.id
-      });
+      if (modalMode === 'create') {
+        await adminService.scheduleSoutenance({
+          ...formData,
+          admin_id: user.id
+        });
+        alert('Soutenance programmée !');
+      } else {
+        await adminService.updateSoutenance(selectedSoutenance.id, formData);
+        alert('Soutenance mise à jour !');
+      }
       setIsModalOpen(false);
-      setFormData({ projet_id: '', date: '', salle: '', jury: '' });
+      setFormData({ projet_id: '', date: '', salle: '', jury_membres: '', jury: [] });
       loadData();
+      if (selectedSoutenance) setSelectedSoutenance(null);
     } catch (err) {
-      alert("Erreur lors de la planification");
+      alert("Erreur lors de l'enregistrement");
     } finally {
       setIsSubmitting(false);
     }
@@ -92,7 +108,7 @@ export default function AdminSoutenances() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Organisation des Soutenances">
         <div className="flex justify-center items-center min-h-[60vh]">
           <Loader size="lg" text="Chargement du planning des soutenances..." />
         </div>
@@ -101,7 +117,7 @@ export default function AdminSoutenances() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Organisation des Soutenances">
       <div className="max-w-7xl mx-auto space-y-8 pb-12">
         <header className="flex justify-between items-center">
           <div>
@@ -109,10 +125,14 @@ export default function AdminSoutenances() {
               <GraduationCap className="h-8 w-8 text-[#1E4AA8]" />
               Gestion des Soutenances
             </h1>
-            <p className="text-slate-500 mt-2">Planifiez et évaluez les soutenances des étudiants.</p>
+            <p className="text-slate-500 mt-2">Planifiez et constituez les jurys pour les soutenances.</p>
           </div>
           {user?.role === 'ADMIN' && (
-            <Button icon={Plus} onClick={() => setIsModalOpen(true)}>Programmer une soutenance</Button>
+            <Button icon={Plus} onClick={() => {
+              setModalMode('create');
+              setFormData({ projet_id: '', date: '', salle: '', jury_membres: '', jury: [] });
+              setIsModalOpen(true);
+            }}>Programmer</Button>
           )}
         </header>
 
@@ -121,9 +141,16 @@ export default function AdminSoutenances() {
               <DefenseCalendar 
                 soutenances={soutenances} 
                 onSelectDate={(day) => {
-                  setSelectedDay(day);
-                  setFormData(prev => ({ ...prev, date: format(day, "yyyy-MM-dd'T'HH:mm") }));
-                  setIsModalOpen(true);
+                   setSelectedDay(day);
+                   setModalMode('create');
+                   setFormData({
+                      projet_id: '',
+                      date: format(day, "yyyy-MM-dd'T'HH:mm"),
+                      salle: '',
+                      jury_membres: '',
+                      jury: []
+                   });
+                   setIsModalOpen(true);
                 }}
                 onSelectDefense={(def) => setSelectedSoutenance(def)}
               />
@@ -195,13 +222,46 @@ export default function AdminSoutenances() {
                              )}
                           </div>
 
+                          <div className="space-y-4 pt-4 border-t border-slate-100">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composition du Jury</p>
+                             <div className="space-y-2">
+                                {selectedSoutenance.jury && selectedSoutenance.jury.length > 0 ? (
+                                   selectedSoutenance.jury.map((m, idx) => (
+                                      <div key={idx} className="flex justify-between items-center text-sm p-2 bg-slate-50 rounded-lg">
+                                         <div className="flex flex-col">
+                                            <span className="font-bold text-[#0B1C3F]">{m.prenom} {m.nom} {m.external_name}</span>
+                                            <span className="text-[10px] text-[#1E4AA8] font-bold uppercase">{m.role}</span>
+                                         </div>
+                                      </div>
+                                   ))
+                                ) : (
+                                   <p className="text-xs text-slate-400 italic font-medium">Aucun membre assigné ou : {selectedSoutenance.jury_membres}</p>
+                                )}
+                             </div>
+                          </div>
+
                           {user?.role === 'ADMIN' && (
                             <div className="flex gap-2 pt-2">
                               <Button className="flex-1 rounded-xl bg-[#0B1C3F]" size="sm" icon={Edit3} onClick={() => {
-                                setEditNote(selectedSoutenance.id);
-                              }}>Noter</Button>
-                              <Button variant="outline" className="rounded-xl border-red-100 text-red-500 hover:bg-red-50" size="sm" icon={Trash2} onClick={() => handleDelete(selectedSoutenance.id)}>Supprimer</Button>
-                            </div>
+                                setModalMode('edit');
+                                setFormData({
+                                  projet_id: selectedSoutenance.projet_id,
+                                  date: format(new Date(selectedSoutenance.date_soutenance), "yyyy-MM-dd'T'HH:mm"),
+                                  salle: selectedSoutenance.salle || '',
+                                  jury_membres: selectedSoutenance.jury_membres || '',
+                                  jury: selectedSoutenance.jury || []
+                                });
+                                setIsModalOpen(true);
+                              }}>Modifier</Button>
+                               <Button variant="outline" className="rounded-xl border-red-100 text-red-500 hover:bg-red-50" size="sm" icon={Trash2} onClick={() => handleDelete(selectedSoutenance.id)}>Supprimer</Button>
+                               <Button 
+                                 variant="outline" 
+                                 className="rounded-xl border-blue-100 text-blue-600 hover:bg-blue-50" 
+                                 size="sm" 
+                                 icon={FileDown} 
+                                 onClick={() => reportService.generateDefensePV(selectedSoutenance)}
+                               >PV (PDF)</Button>
+                             </div>
                           )}
                        </Card.Content>
                     </Card>
@@ -237,7 +297,7 @@ export default function AdminSoutenances() {
                   >
                     <option value="">Sélectionner un projet</option>
                     {projects.map(p => (
-                      <option key={p.id} value={p.id}>{p.titre} ({p.prenom_etudiant} {p.nom_etudiant})</option>
+                      <option key={p.id} value={p.id}>{p.titre} ({p.etudiant_prenom} {p.etudiant_nom})</option>
                     ))}
                   </select>
                 </div>
@@ -254,13 +314,91 @@ export default function AdminSoutenances() {
                   value={formData.salle}
                   onChange={(e) => setFormData({...formData, salle: e.target.value})}
                 />
-                <div className="space-y-1">
+                <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <label className="text-xs font-bold text-slate-500 uppercase">Membres du Jury</label>
+                  
+                  <div className="flex gap-2">
+                    <select 
+                      className="flex-1 p-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E4AA8] outline-none"
+                      value={memberToAdd.user_id}
+                      onChange={(e) => setMemberToAdd({...memberToAdd, user_id: e.target.value})}
+                    >
+                      <option value="">Choisir un membre...</option>
+                      {users.map(u => (
+                        <option key={u.id} value={u.id}>{u.prenom} {u.nom} ({u.role?.replace('ENCADREUR_', '')})</option>
+                      ))}
+                      <option value="EXTERNAL">-- Externe --</option>
+                    </select>
+                    
+                    <select 
+                      className="w-32 p-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E4AA8] outline-none"
+                      value={memberToAdd.role}
+                      onChange={(e) => setMemberToAdd({...memberToAdd, role: e.target.value})}
+                    >
+                      <option value="PRESIDENT">Président</option>
+                      <option value="RAPPORTEUR">Rapporteur</option>
+                      <option value="EXAMINATEUR">Examinateur</option>
+                      <option value="INVITE">Invité</option>
+                    </select>
+
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      onClick={() => {
+                        if (!memberToAdd.user_id && !memberToAdd.external_name) return;
+                        
+                        const selectedProject = projects.find(p => p.id == formData.projet_id);
+                        if (memberToAdd.role === 'PRESIDENT' && selectedProject) {
+                           if (memberToAdd.user_id == selectedProject.encadreur_acad_id) {
+                              alert("Attention : L'encadreur académique ne peut pas être le Président du jury.");
+                              return;
+                           }
+                        }
+
+                        const user = users.find(u => u.id == memberToAdd.user_id);
+                        const newJury = [...formData.jury, {
+                          user_id: memberToAdd.user_id === 'EXTERNAL' ? null : memberToAdd.user_id,
+                          role: memberToAdd.role,
+                          prenom: user ? user.prenom : '',
+                          nom: user ? user.nom : '',
+                          external_name: memberToAdd.user_id === 'EXTERNAL' ? memberToAdd.external_name : ''
+                        }];
+                        setFormData({...formData, jury: newJury});
+                        setMemberToAdd({ user_id: '', role: 'EXAMINATEUR', external_name: '' });
+                      }}
+                      className="bg-[#0B1C3F]"
+                    >Add</Button>
+                  </div>
+
+                  {memberToAdd.user_id === 'EXTERNAL' && (
+                    <Input 
+                      placeholder="Nom du membre externe"
+                      value={memberToAdd.external_name}
+                      onChange={(e) => setMemberToAdd({...memberToAdd, external_name: e.target.value})}
+                    />
+                  )}
+
+                  <div className="space-y-2 mt-2">
+                    {formData.jury.map((m, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs p-2 bg-white rounded-lg border border-slate-100">
+                        <span className="font-bold">{m.prenom} {m.nom} {m.external_name} ({m.role})</span>
+                        <button 
+                          type="button"
+                          onClick={() => setFormData({...formData, jury: formData.jury.filter((_, i) => i !== idx)})}
+                          className="text-red-500 hover:text-red-700"
+                        ><Trash2 size={14} /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-500 uppercase">Commentaires / Notes Jury</label>
                   <textarea 
-                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E4AA8] outline-none min-h-[80px]"
-                    placeholder="Noms des membres, séparés par des virgules"
-                    value={formData.jury}
-                    onChange={(e) => setFormData({...formData, jury: e.target.value})}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E4AA8] outline-none min-h-[60px]"
+                    placeholder="Informations complémentaires..."
+                    value={formData.jury_membres}
+                    onChange={(e) => setFormData({...formData, jury_membres: e.target.value})}
                   />
                 </div>
                 <div className="flex gap-3 pt-4">

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . "/../Models/User.php";
 require_once __DIR__ . "/../Models/Project.php";
+require_once __DIR__ . "/../Models/AuditLog.php";
 
 final class AdminController
 {
@@ -57,6 +58,9 @@ final class AdminController
         "Votre compte PROJEX a été activé avec le rôle : " . str_replace('_', ' ', $role),
         "/settings"
       );
+      
+      // Audit Log
+      AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "ACTIVATE_USER", "USER", $id, ["role" => $role]);
 
       // Retourner JSON si c'est une API call
       if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
@@ -102,6 +106,8 @@ final class AdminController
 
       try {
           $userId = User::create($pdo, $data);
+          // Audit Log
+          AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "CREATE_USER", "USER", $userId, ["email" => $email, "role" => $data["role"]]);
           echo json_encode(["message" => "Utilisateur créé avec succès", "id" => $userId]);
       } catch (Throwable $e) {
           http_response_code(500);
@@ -116,6 +122,10 @@ final class AdminController
 
       try {
           User::updateProfile($pdo, $id, $input);
+          
+          // Audit Log
+          AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "UPDATE_USER", "USER", $id);
+          
           echo json_encode(["message" => "Utilisateur mis à jour avec succès"]);
       } catch (Throwable $e) {
           http_response_code(500);
@@ -128,6 +138,10 @@ final class AdminController
       header("Content-Type: application/json");
       try {
           User::delete($pdo, $id);
+          
+          // Audit Log
+          AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "DELETE_USER", "USER", $id);
+          
           echo json_encode(["message" => "Utilisateur supprimé avec succès"]);
       } catch (Throwable $e) {
           http_response_code(500);
@@ -170,58 +184,6 @@ final class AdminController
       } catch (Throwable $e) {
           http_response_code(500);
           echo json_encode(["error" => "Erreur lors de la réinitialisation"]);
-      }
-  }
-
-  public static function getProjectDetails(PDO $pdo, int $id): void
-  {
-      header("Content-Type: application/json");
-      try {
-          $project = Project::find($pdo, $id);
-          if (!$project) {
-              http_response_code(404);
-              echo json_encode(["error" => "Projet non trouvé"]);
-              return;
-          }
-
-          // Équipe
-          $stmt = $pdo->prepare("
-              SELECT u.id, u.nom, u.prenom, u.role, u.email, u.image_profil
-              FROM project_assignments pa
-              JOIN users u ON u.id IN (pa.etudiant_id, pa.encadreur_acad_id, pa.encadreur_pro_id)
-              WHERE pa.project_id = ?
-          ");
-          $stmt->execute([$id]);
-          $team = $stmt->fetchAll();
-
-          // Livrables
-          require_once __DIR__ . "/../Models/Livrable.php";
-          $deliverables = Livrable::byProject($pdo, $id);
-
-          // Évaluations
-          require_once __DIR__ . "/../Models/Evaluation.php";
-          $evalAcad = Evaluation::findByProject($pdo, $id);
-          $evalPro = Evaluation::findProByProject($pdo, $id);
-
-          // Soutenance
-          require_once __DIR__ . "/../Models/Soutenance.php";
-          $stmt = $pdo->prepare("SELECT * FROM soutenances WHERE projet_id = ? LIMIT 1");
-          $stmt->execute([$id]);
-          $soutenance = $stmt->fetch() ?: null;
-
-          echo json_encode([
-              "project" => $project,
-              "team" => $team,
-              "deliverables" => $deliverables,
-              "evaluations" => [
-                  "academique" => $evalAcad,
-                  "professionnelle" => $evalPro
-              ],
-              "soutenance" => $soutenance
-          ]);
-      } catch (Throwable $e) {
-          http_response_code(500);
-          echo json_encode(["error" => $e->getMessage()]);
       }
   }
 

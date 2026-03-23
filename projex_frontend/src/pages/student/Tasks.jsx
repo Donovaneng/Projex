@@ -3,7 +3,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import studentService from '../../services/studentService';
 import Card from '../../components/ui/Card';
 import Loader from '../../components/ui/Loader';
-import { CheckCircle, Clock, AlertTriangle, LayoutList, ListTodo } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, LayoutList, ListTodo, Trash2 } from 'lucide-react';
 
 export default function StudentTasks() {
   const [loading, setLoading] = useState(true);
@@ -46,9 +46,19 @@ export default function StudentTasks() {
     }
   };
 
+  const handleDeleteTask = async (taskId) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer cette tâche ?")) return;
+    try {
+      await studentService.deleteTask(taskId);
+      loadTasks();
+    } catch (err) {
+      alert("Erreur lors de la suppression");
+    }
+  };
+
   const filteredTasks = selectedProjectId === 'all' 
     ? tasks 
-    : tasks.filter(t => t.projet_id === parseInt(selectedProjectId));
+    : tasks.filter(t => t.project_id === parseInt(selectedProjectId));
 
   const Column = ({ title, icon: Icon, colorClass, items, statusId }) => (
     <div className="flex flex-col gap-6">
@@ -78,6 +88,13 @@ export default function StudentTasks() {
               <Card.Content className="p-6">
                 <div className="flex justify-between items-start mb-3">
                    <h4 className="font-black text-[#0B1C3F] text-sm leading-tight group-hover:text-[#1E4AA8] transition-colors">{task.titre}</h4>
+                   <button 
+                     onClick={() => handleDeleteTask(task.id)}
+                     className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                     title="Supprimer la tâche"
+                   >
+                     <Trash2 size={14} />
+                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed font-medium">{task.description}</p>
                 
@@ -100,10 +117,10 @@ export default function StudentTasks() {
                         value={task.statut}
                         onChange={(e) => handleStatusChange(task.id, e.target.value)}
                       >
-                        <option value="A_FAIRE">⏳ À faire</option>
-                        <option value="EN_COURS">⚡ En cours</option>
-                        <option value="TERMINE">✅ Terminé</option>
-                        <option value="BLOQUE">🚫 Bloqué</option>
+                        <option value="A_FAIRE">À faire</option>
+                        <option value="EN_COURS">En cours</option>
+                        <option value="TERMINE">Terminé</option>
+                        <option value="BLOQUE">Bloqué</option>
                       </select>
                    </div>
                 </div>
@@ -116,7 +133,7 @@ export default function StudentTasks() {
   );
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mes Tâches & Suivi">
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>

@@ -4,7 +4,7 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
-import { Users, FolderKanban, AlertCircle, CheckCircle2, UserCheck, Edit3, FileSpreadsheet, RefreshCcw } from "lucide-react";
+import { Users, FolderKanban, AlertCircle, CheckCircle2, UserCheck, Edit3, FileSpreadsheet, RefreshCcw, Calendar } from "lucide-react";
 import { exportToExcel } from "../../utils/exportUtils";
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
@@ -28,6 +28,8 @@ const StatCard = ({ title, value, subtext, icon: Icon, color, textColor }) => (
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
+  const [periods, setPeriods] = useState([]);
+  const [selectedPeriod, setSelectedPeriod] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isMounted, setIsMounted] = useState(false);
@@ -36,25 +38,40 @@ export default function AdminDashboard() {
     setIsMounted(true);
   }, []);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  const loadStats = async (periodId = null) => {
     try {
-      const statsRes = await adminService.getStats();
-      console.log("Stats reçues:", statsRes);
-      if (!statsRes) throw new Error("Réponse vide du serveur");
-      setStats(statsRes);
+      setLoading(true);
+      const data = await adminService.getStats(periodId);
+      setStats(data);
+      setError("");
     } catch (err) {
-      console.error("Erreur chargement stats:", err);
-      setError(err.error || err.message || "Impossible de charger les statistiques");
+      setError("Erreur lors du chargement des statistiques");
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
+
+  const loadPeriods = async () => {
+    try {
+      const res = await adminService.getPeriods();
+      setPeriods(res.periods || []);
+      const active = res.periods?.find(p => Number(p.actif) === 1);
+      if (active) setSelectedPeriod(active.id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    loadPeriods();
+    loadStats();
+  }, []);
+
+  const handlePeriodChange = (e) => {
+     const id = e.target.value === 'all' ? null : Number(e.target.value);
+     setSelectedPeriod(id);
+     loadStats(id);
+  };
 
   const handleExcelExport = async () => {
     try {
@@ -89,15 +106,30 @@ export default function AdminDashboard() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Tableau de Bord">
       <div className="space-y-8 max-w-7xl mx-auto">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-[#0B1C3F]">Tableau de Bord</h1>
             <p className="text-slate-500 mt-1">Vue d'ensemble de l'activité du système PROJEX.</p>
           </div>
+          
+          <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+             <Calendar className="h-4 w-4 text-[#1E4AA8] ml-2" />
+             <select 
+                className="bg-transparent border-none text-sm font-bold text-[#0B1C3F] focus:ring-0 cursor-pointer pr-8"
+                value={selectedPeriod || 'all'}
+                onChange={handlePeriodChange}
+             >
+                <option value="all">Toutes les périodes</option>
+                {periods.map(p => (
+                   <option key={p.id} value={p.id}>Période {p.nom || p.label}</option>
+                ))}
+             </select>
+          </div>
+
           <div className="flex gap-3">
-             <Button variant="outline" icon={RefreshCcw} onClick={loadData}>Actualiser</Button>
+             <Button variant="outline" icon={RefreshCcw} onClick={() => loadStats(selectedPeriod)}>Actualiser</Button>
              <Button className="bg-[#10B981] hover:bg-[#059669] text-white border-none" icon={FileSpreadsheet} onClick={handleExcelExport}>Exporter les notes</Button>
           </div>
         </header>
@@ -158,7 +190,7 @@ export default function AdminDashboard() {
               <Card.Content className="p-6">
                 <div style={{ width: '100%', height: '350px', position: 'relative' }}>
                   {isMounted && stats && (
-                    <ResponsiveContainer key={`chart1-${stats ? 'ready' : 'empty'}`} width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer key={`chart1-${stats ? 'ready' : 'empty'}`} width="100%" height={350} debounce={100}>
                       <PieChart>
                         <Pie
                           data={[
@@ -193,7 +225,7 @@ export default function AdminDashboard() {
               <Card.Content className="p-6">
                 <div style={{ width: '100%', height: '350px', position: 'relative' }}>
                   {isMounted && stats && (
-                    <ResponsiveContainer key={`chart2-${stats ? 'ready' : 'empty'}`} width="100%" height="100%" minWidth={0}>
+                    <ResponsiveContainer key={`chart2-${stats ? 'ready' : 'empty'}`} width="100%" height={350} debounce={100}>
                       <AreaChart data={stats?.monthly_activity || []}>
                         <defs>
                           <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">

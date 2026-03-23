@@ -13,8 +13,13 @@ import {
   Clock,
   ArrowRight,
   ChevronRight,
-  Star
+  Star,
+  Download,
+  ExternalLink,
+  Mail,
+  Phone
 } from 'lucide-react';
+import { formatFileUrl } from '../../utils/file';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import supervisorService from '../../services/supervisorService';
 import Card from '../../components/ui/Card';
@@ -139,7 +144,7 @@ export default function SupervisorProjects() {
   if (loading) {
 // ... existing loader code ...
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Mes Projets Étudiants">
         <div className="flex justify-center items-center min-h-[60vh]">
           <Loader size="lg" text="Chargement de vos projets..." />
         </div>
@@ -148,7 +153,7 @@ export default function SupervisorProjects() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mes Projets Étudiants">
       <div className="max-w-7xl mx-auto space-y-8">
         
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
@@ -197,12 +202,12 @@ export default function SupervisorProjects() {
                   
                   <div className="mt-8 space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[#0B1C3F] text-sm">
-                        {project.etudiant_nom?.split(' ').map(n=>n[0]).join('')}
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[#0B1C3F] text-sm uppercase">
+                        {project.etudiant_nom?.[0]}{project.etudiant_prenom?.[0]}
                       </div>
                       <div>
                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Étudiant</p>
-                        <p className="text-sm font-bold text-[#0B1C3F]">{project.etudiant_nom}</p>
+                        <p className="text-sm font-bold text-[#0B1C3F]">{project.etudiant_prenom} {project.etudiant_nom}</p>
                       </div>
                     </div>
                     
@@ -222,10 +227,13 @@ export default function SupervisorProjects() {
                   <div className="mt-8 space-y-2">
                     <div className="flex justify-between text-xs font-black uppercase">
                        <span className="text-slate-400">Progression</span>
-                       <span className="text-[#1E4AA8]">65%</span>
+                       <span className="text-[#1E4AA8]">{project.progress || 0}%</span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                       <div className="h-full bg-[#1E4AA8] w-[65%] rounded-full shadow-inner" />
+                       <div 
+                         className="h-full bg-[#1E4AA8] rounded-full shadow-inner transition-all duration-1000" 
+                         style={{ width: `${project.progress || 0}%` }}
+                       />
                     </div>
                   </div>
 
@@ -264,9 +272,9 @@ export default function SupervisorProjects() {
               <p className="text-slate-500 font-bold animate-pulse">Assemblage des données...</p>
             </div>
           ) : selectedProject ? (
-            <div className="flex flex-col md:flex-row min-h-[600px] overflow-hidden rounded-3xl">
+            <div className="flex flex-col md:flex-row overflow-hidden rounded-[2rem]">
               {/* Left Sidebar: Info */}
-              <div className="w-full md:w-80 bg-slate-50 p-8 border-r border-slate-100">
+              <div className="w-full md:w-80 bg-slate-50 p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-100 shrink-0 overflow-y-auto">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-[#1E4AA8] text-white flex items-center justify-center font-black shadow-lg shadow-blue-600/20">
                     {selectedProject.titre[0]}
@@ -289,10 +297,29 @@ export default function SupervisorProjects() {
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Étudiant</p>
                     <Card className="shadow-none border-slate-200">
                        <Card.Content className="p-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-[#1E4AA8] flex items-center justify-center text-xs font-bold">
-                            {selectedProject.etudiant_nom?.[0]}
-                          </div>
-                          <p className="text-xs font-bold text-[#0B1C3F] truncate">{selectedProject.etudiant_nom}</p>
+                           <div className="w-8 h-8 rounded-full bg-blue-100 text-[#1E4AA8] flex items-center justify-center text-xs font-bold uppercase transition-transform group-hover:scale-110">
+                             {selectedProject.etudiant_nom?.[0]}{selectedProject.etudiant_prenom?.[0]}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                               <p className="text-xs font-bold text-[#0B1C3F] truncate">{selectedProject.etudiant_prenom} {selectedProject.etudiant_nom}</p>
+                               <div className="flex flex-col gap-0.5 mt-1">
+                                   {selectedProject.etudiant_email && (
+                                       <a href={`mailto:${selectedProject.etudiant_email}`} className="text-[10px] text-[#1E4AA8] hover:underline flex items-center gap-1 font-medium truncate">
+                                           <Mail size={10} /> {selectedProject.etudiant_email}
+                                       </a>
+                                   )}
+                                   {selectedProject.etudiant_tel && (
+                                       <a href={`tel:${selectedProject.etudiant_tel}`} className="text-[10px] text-slate-500 flex items-center gap-1 font-medium">
+                                           <Phone size={10} /> {selectedProject.etudiant_tel}
+                                       </a>
+                                   )}
+                                   {selectedProject.etudiant_matricule && (
+                                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mt-1 bg-slate-100 px-1 inline-block self-start rounded">
+                                           Matricule: {selectedProject.etudiant_matricule}
+                                       </p>
+                                   )}
+                               </div>
+                           </div>
                        </Card.Content>
                     </Card>
                   </div>
@@ -300,9 +327,12 @@ export default function SupervisorProjects() {
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Progression</p>
                     <div className="h-2 bg-slate-200 rounded-full mb-1">
-                      <div className="h-full bg-emerald-500 w-[70%] rounded-full" />
+                      <div 
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-700" 
+                        style={{ width: `${selectedProject.progress || 0}%` }}
+                      />
                     </div>
-                    <p className="text-[10px] font-bold text-slate-500 text-right">70% complété</p>
+                    <p className="text-[10px] font-bold text-slate-500 text-right">{selectedProject.progress || 0}% complété</p>
                   </div>
                 </div>
               </div>
@@ -316,6 +346,16 @@ export default function SupervisorProjects() {
                    <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 text-slate-600 font-medium leading-relaxed">
                      {selectedProject.description}
                    </div>
+                   
+                   {selectedProject.statut === 'REJETE' && selectedProject.motif_rejet && (
+                      <div className="mt-6 p-5 bg-red-50 border border-red-100 rounded-[2rem] flex gap-4 items-start shadow-sm shadow-red-900/5">
+                        <AlertTriangle className="text-red-600 mt-1 shrink-0" size={20} />
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">Motif du Rejet</p>
+                          <p className="text-sm text-red-700 font-bold leading-relaxed">{selectedProject.motif_rejet}</p>
+                        </div>
+                      </div>
+                   )}
                  </section>
 
                  <section>
@@ -342,6 +382,19 @@ export default function SupervisorProjects() {
                                <p className="text-xs text-slate-500 mt-1 font-medium">
                                  {item.type === 'LIVRABLE' ? `Statut: ${item.meta}` : `Note: ${item.meta}/20`}
                                </p>
+                               {item.type === 'LIVRABLE' && item.file_path && (
+                                 <div className="mt-2">
+                                   <a 
+                                      href={formatFileUrl(item.file_path)} 
+                                      target="_blank" 
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#1E4AA8] bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100 transition-colors"
+                                    >
+                                      <Download size={12} />
+                                      Télécharger le fichier
+                                    </a>
+                                 </div>
+                               )}
                             </div>
                          </div>
                        ))

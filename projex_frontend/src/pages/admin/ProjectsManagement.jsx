@@ -24,8 +24,11 @@ export default function AdminProjectsManagement() {
   const [newProject, setNewProject] = useState({
     titre: '',
     description: '',
-    date_fin: ''
+    date_fin: '',
+    categorie_id: ''
   });
+  
+  const [categories, setCategories] = useState([]);
   
   const [assignmentData, setAssignmentData] = useState({
     user_ids: []
@@ -43,13 +46,15 @@ export default function AdminProjectsManagement() {
       setLoading(true);
       setError('');
       
-      const [projectsRes, usersRes] = await Promise.all([
+      const [projectsRes, usersRes, catRes] = await Promise.all([
         adminService.searchProjects({ q: searchQuery, statut: statusFilter }),
-        adminService.getAllUsers()
+        adminService.getAllUsers(),
+        adminService.getCategories().catch(() => ({ categories: [] }))
       ]);
       
       setProjects(projectsRes.projects || projectsRes || []);
       setAllUsers(usersRes.users || []);
+      setCategories(catRes.categories || []);
     } catch (err) {
       console.error('Erreur chargement données admin:', err);
       setError('Impossible de charger les données.');
@@ -77,7 +82,7 @@ export default function AdminProjectsManagement() {
         alert('Projet mis à jour avec succès !');
       }
       setIsCreateModalOpen(false);
-      setNewProject({ titre: '', description: '', date_fin: '' });
+      setNewProject({ titre: '', description: '', date_fin: '', categorie_id: '' });
       loadData();
     } catch (err) {
       console.error(err);
@@ -88,9 +93,11 @@ export default function AdminProjectsManagement() {
   };
 
   const handleRejectProposal = async (projectId) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir rejeter cette proposition ?")) return;
+    const motif = window.prompt("Veuillez saisir le motif du rejet :");
+    if (motif === null) return; // Annulé
+    
     try {
-      await adminService.rejectProposal(projectId);
+      await adminService.rejectProposal(projectId, motif || "Refusé par l'administration");
       loadData();
       alert('Proposition rejetée.');
     } catch (err) {
@@ -140,7 +147,8 @@ export default function AdminProjectsManagement() {
     setNewProject({
       titre: project.titre || '',
       description: project.description || '',
-      date_fin: project.date_fin ? project.date_fin.substring(0, 10) : ''
+      date_fin: project.date_fin ? project.date_fin.substring(0, 10) : '',
+      categorie_id: project.categorie_id || ''
     });
     setIsCreateModalOpen(true);
   };
@@ -148,7 +156,7 @@ export default function AdminProjectsManagement() {
   const openCreateModal = () => {
     setModalMode('create');
     setEditingProject(null);
-    setNewProject({ titre: '', description: '', date_fin: '' });
+    setNewProject({ titre: '', description: '', date_fin: '', categorie_id: '' });
     setIsCreateModalOpen(true);
   };
 
@@ -170,9 +178,16 @@ export default function AdminProjectsManagement() {
     }
   };
 
-  const openAssignModal = (projectId) => {
-    setSelectedProjectId(projectId);
-    setAssignmentData({ user_ids: [] });
+  const openAssignModal = (project) => {
+    setSelectedProjectId(project.id);
+    
+    // Pré-charger les utilisateurs déjà assignés
+    const assignedIds = [];
+    if (project.student_id) assignedIds.push(parseInt(project.student_id));
+    if (project.encadreur_acad_id) assignedIds.push(parseInt(project.encadreur_acad_id));
+    if (project.encadreur_pro_id) assignedIds.push(parseInt(project.encadreur_pro_id));
+    
+    setAssignmentData({ user_ids: assignedIds });
     setIsAssignModalOpen(true);
   };
 
@@ -189,7 +204,7 @@ export default function AdminProjectsManagement() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Gestion des Projets">
         <div className="flex justify-center items-center min-h-[60vh]">
           <Loader size="lg" text="Chargement des projets..." />
         </div>
@@ -198,7 +213,7 @@ export default function AdminProjectsManagement() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Gestion des Projets">
       <div className="max-w-7xl mx-auto space-y-8">
         
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -260,7 +275,8 @@ export default function AdminProjectsManagement() {
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-4">Titre du Projet</th>
-                  <th className="px-6 py-4">Étudiant</th>
+                  <th className="px-6 py-4 text-center">Catégorie</th>
+                  <th className="px-6 py-4 text-center">Étudiant</th>
                   <th className="px-6 py-4 text-center">Statut</th>
                   <th className="px-6 py-4 text-center">Date limite</th>
                   <th className="px-6 py-4 text-right">Actions</th>
@@ -290,6 +306,15 @@ export default function AdminProjectsManagement() {
                             <p className="text-xs text-slate-500 max-w-[250px] truncate">{project.description}</p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {project.categorie_label ? (
+                          <span className="px-2 py-1 bg-blue-50 text-[#1E4AA8] text-[10px] font-bold rounded-md uppercase">
+                            {project.categorie_label}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {project.etudiant_nom ? (
@@ -354,7 +379,7 @@ export default function AdminProjectsManagement() {
                             size="sm" 
                             variant="outline" 
                             icon={LinkIcon}
-                            onClick={() => openAssignModal(project.id)}
+                            onClick={() => openAssignModal(project)}
                             title="Assigner des encadreurs"
                             className="bg-slate-50"
                           >
@@ -411,6 +436,20 @@ export default function AdminProjectsManagement() {
               value={newProject.description}
               onChange={(e) => setNewProject({...newProject, description: e.target.value})}
             />
+
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-700">Catégorie</label>
+              <select 
+                className="w-full p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E4AA8] outline-none"
+                value={newProject.categorie_id}
+                onChange={(e) => setNewProject({...newProject, categorie_id: e.target.value})}
+              >
+                <option value="">Sélectionner une catégorie (optionnel)</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
             
             <Input 
               label="Date de fin"

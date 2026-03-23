@@ -5,6 +5,7 @@ require_once __DIR__ . '/../Models/Project.php';
 require_once __DIR__ . '/../Models/Evaluation.php';
 require_once __DIR__ . '/../Models/ProfessionalEvaluation.php';
 require_once __DIR__ . '/../Models/Livrable.php';
+require_once __DIR__ . '/../Models/AuditLog.php';
 
 final class SupervisorController
 {
@@ -21,10 +22,16 @@ final class SupervisorController
       $projects = Project::findByProSupervisor($pdo, $userId);
     }
 
-    // Add student name to each project for the UI
+    // Add student name and progress to each project for the UI
     foreach ($projects as &$p) {
         $student = Project::assignedStudent($pdo, (int)$p["id"]);
-        $p["etudiant_nom"] = $student ? $student["prenom"] . " " . $student["nom"] : "Non assigné";
+        $p["etudiant_nom"] = $student ? $student["nom"] : "Non assigné";
+        $p["etudiant_prenom"] = $student ? $student["prenom"] : "";
+        $p["etudiant_id"] = $student ? $student["id"] : null;
+        $p["etudiant_full_nom"] = $student ? $student["prenom"] . " " . $student["nom"] : "Non assigné";
+
+        // Calculate progress
+        $p["progress"] = Project::getProgress($pdo, (int)$p["id"]);
     }
 
     header("Content-Type: application/json");
@@ -43,10 +50,13 @@ final class SupervisorController
     }
 
     $student = Project::assignedStudent($pdo, $projectId);
-    $project["etudiant_nom"] = $student ? $student["prenom"] . " " . $student["nom"] : "Non assigné";
+    $project["etudiant_nom"] = $student ? $student["nom"] : "Non assigné";
+    $project["etudiant_prenom"] = $student ? $student["prenom"] : "";
+    $project["etudiant_full_nom"] = $student ? $student["prenom"] . " " . $student["nom"] : "Non assigné";
     
     $livrables = Livrable::byProject($pdo, $projectId);
     $project["livrables"] = $livrables;
+    $project["progress"] = Project::getProgress($pdo, $projectId);
 
     header("Content-Type: application/json");
     echo json_encode(["project" => $project]);
@@ -108,6 +118,8 @@ final class SupervisorController
       }
 
       echo json_encode(["success" => true, "message" => "Livrable approuvé"]);
+      // Audit Log
+      AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "APPROVE_DELIVERABLE", "LIVRABLE", $deliverableId);
   }
 
   public static function rejectDeliverable(PDO $pdo, int $deliverableId): void
@@ -135,6 +147,8 @@ final class SupervisorController
       }
 
       echo json_encode(["success" => true, "message" => "Livrable rejeté"]);
+      // Audit Log
+      AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "REJECT_DELIVERABLE", "LIVRABLE", $deliverableId, ["reason" => $reason]);
   }
 
   public static function createEvaluation(PDO $pdo): void
@@ -231,8 +245,8 @@ final class SupervisorController
               $id
           );
       } else {
-          $stmt = $pdo->prepare("UPDATE projects SET statut = 'REJETE' WHERE id = ?");
-          $stmt->execute([$id]);
+          $stmt = $pdo->prepare("UPDATE projects SET statut = 'REJETE', motif_rejet = ? WHERE id = ?");
+          $stmt->execute([$comment, $id]);
 
           Notification::create(
               $pdo,
@@ -245,6 +259,9 @@ final class SupervisorController
           );
       }
 
+      // Audit Log
+      AuditLog::log($pdo, (int)$_SESSION["user"]["id"], $action === "APPROVE" ? "APPROVE_PROJECT" : "REJECT_PROJECT", "PROJECT", $id, ["comment" => $comment]);
+
       echo json_encode(["success" => true, "message" => "Action effectuée avec succès"]);
   }
 
@@ -256,7 +273,7 @@ final class SupervisorController
       $timeline = [];
 
       // 1. Livrables
-      $livrables = $pdo->prepare("SELECT id, titre as label, 'LIVRABLE' as type, submitted_at as date, statut as meta FROM livrables WHERE projet_id = ?");
+      $livrables = $pdo->prepare("SELECT id, titre as label, 'LIVRABLE' as type, submitted_at as date, statut as meta, file_path FROM livrables WHERE projet_id = ?");
       $livrables->execute([$projectId]);
       while($row = $livrables->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
 
@@ -265,9 +282,16 @@ final class SupervisorController
       $evals->execute([$projectId]);
       while($row = $evals->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
 
+      // 3. Tâches
+      $tasks = $pdo->prepare("SELECT id, titre as label, 'TASK' as type, created_at as date, statut as meta FROM taches WHERE project_id = ?");
+      $tasks->execute([$projectId]);
+      while($row = $tasks->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
+
       // Trier par date décroissante
       usort($timeline, function($a, $b) {
-          return strtotime($b['date']) - strtotime($a['date']);
+          $dateA = $a['date'] ?? '0000-00-00 00:00:00';
+          $dateB = $b['date'] ?? '0000-00-00 00:00:00';
+          return strtotime($dateB) - strtotime($dateA);
       });
 
       header("Content-Type: application/json");

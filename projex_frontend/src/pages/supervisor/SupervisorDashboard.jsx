@@ -10,9 +10,12 @@ import {
   FileSearch,
   MessageSquare,
   ArrowRight,
-  History as HistoryIcon
+  History as HistoryIcon,
+  Download
 } from 'lucide-react';
+import { formatFileUrl } from '../../utils/file';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import supervisorService from '../../services/supervisorService';
 import Card from '../../components/ui/Card';
@@ -20,6 +23,7 @@ import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
 
 export default function SupervisorDashboard() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     projects: [],
@@ -57,7 +61,7 @@ export default function SupervisorDashboard() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Mon Espace Superviseur">
         <div className="flex justify-center items-center h-[60vh]">
           <Loader size="lg" text="Chargement de votre espace premium..." />
         </div>
@@ -101,14 +105,18 @@ export default function SupervisorDashboard() {
   ];
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mon Espace Superviseur">
       <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl font-black text-[#0B1C3F] tracking-tight">
-              Espace <span className="text-[#1E4AA8]">Encadreur</span>
+              Espace <span className="text-[#1E4AA8]">{user?.role === 'ENCADREUR_PRO' ? 'Professionnel' : 'Académique'}</span>
             </h1>
-            <p className="text-slate-500 mt-2 font-medium">Pilotage et suivi de l'excellence académique.</p>
+            <p className="text-slate-500 mt-2 font-medium">
+              {user?.role === 'ENCADREUR_PRO' 
+                ? "Suivi de l'intégration en entreprise et des compétences professionnelles." 
+                : "Pilotage et suivi de l'excellence académique et technique."}
+            </p>
           </div>
           <div className="flex items-center gap-3">
               <Link to="/supervisor/evaluations">
@@ -116,9 +124,11 @@ export default function SupervisorDashboard() {
                   <HistoryIcon className="mr-2 h-4 w-4" /> Historique
                 </Button>
               </Link>
-             <Button className="rounded-xl bg-[#1E4AA8] hover:bg-[#1E4AA8]/90 shadow-lg shadow-blue-900/10 font-bold">
-               Nouveau Message
-             </Button>
+             <Link to="/messages">
+               <Button className="rounded-xl bg-[#1E4AA8] hover:bg-[#1E4AA8]/90 shadow-lg shadow-blue-900/10 font-bold">
+                 Nouveau Message
+               </Button>
+             </Link>
           </div>
         </header>
 
@@ -166,7 +176,7 @@ export default function SupervisorDashboard() {
                        </div>
                        <Card.Content className="p-6">
                           <h3 className="font-bold text-lg text-[#0B1C3F] group-hover:text-[#1E4AA8] transition-colors line-clamp-1 pr-12">{project.titre}</h3>
-                          <p className="text-sm text-slate-500 mt-2 font-medium">Étu: {project.etudiant_nom}</p>
+                          <p className="text-sm text-slate-500 mt-2 font-medium">Étu: {project.etudiant_prenom} {project.etudiant_nom}</p>
                           
                           <div className="mt-6 space-y-2">
                             <div className="flex justify-between text-xs font-black uppercase tracking-tighter">
@@ -255,6 +265,17 @@ export default function SupervisorDashboard() {
                            <Link to="/supervisor/evaluations" className="flex-1">
                              <Button size="xs" className="w-full font-black text-[10px] uppercase tracking-widest bg-amber-500 hover:bg-amber-600 rounded-lg">Évaluer</Button>
                            </Link>
+                           {deliv.file_path && (
+                             <a 
+                               href={formatFileUrl(deliv.file_path)} 
+                               target="_blank" 
+                               rel="noreferrer"
+                               className="p-2 rounded-lg bg-blue-50 text-[#1E4AA8] hover:bg-blue-100 transition-colors"
+                               title="Télécharger le livrable"
+                             >
+                               <Download size={14} />
+                             </a>
+                           )}
                            <Button variant="ghost" size="xs" className="p-2 rounded-lg text-slate-400 hover:text-red-500"><MessageSquare size={14} /></Button>
                         </div>
                       </Card.Content>
@@ -263,12 +284,48 @@ export default function SupervisorDashboard() {
                 )}
               </div>
             </section>
+            <section className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl shadow-slate-200/50">
+               <h3 className="text-lg font-black text-[#0B1C3F] mb-4">Votre Focus</h3>
+               <div className="space-y-4">
+                  {user?.role === 'ENCADREUR_PRO' ? (
+                    <>
+                      <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 italic text-[11px] text-emerald-800 leading-relaxed font-bold">
+                        "En tant qu'encadreur PRO, votre priorité est l'évaluation des Soft Skills et l'adéquation aux besoins du marché."
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-slate-600 font-bold">
+                        <CheckCircle2 size={16} className="text-emerald-500" />
+                        Comportement professionnel
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-slate-600 font-bold">
+                        <CheckCircle2 size={16} className="text-emerald-500" />
+                        Capacité d'adaptation
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 italic text-[11px] text-blue-800 leading-relaxed font-bold">
+                        "En tant qu'encadreur ACAD, vous veillez à la rigueur méthodologique et à la profondeur technique du projet."
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-slate-600 font-bold">
+                        <CheckCircle2 size={16} className="text-blue-500" />
+                        Qualité du livrable technique
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-slate-600 font-bold">
+                        <CheckCircle2 size={16} className="text-blue-500" />
+                        Respect du planning
+                      </div>
+                    </>
+                  )}
+               </div>
+            </section>
 
             <section className="bg-gradient-to-br from-[#0B1C3F] to-[#1E4AA8] p-8 rounded-[40px] text-white shadow-2xl shadow-blue-900/20 relative overflow-hidden group">
                <div className="relative z-10">
                  <h3 className="text-xl font-black tracking-tight">Besoin d'aide ?</h3>
                  <p className="text-blue-100/70 text-sm mt-2 font-medium">Consultez le guide de l'encadreur pour maîtriser tous les outils PROJEX.</p>
-                 <Button className="mt-6 bg-white text-[#1E4AA8] hover:bg-blue-50 font-black rounded-2xl w-full py-6">Voir la documentation</Button>
+                 <Link to="/supervisor/help">
+                    <Button className="mt-6 bg-white text-[#1E4AA8] hover:bg-blue-50 font-black rounded-2xl w-full py-6">Voir la documentation</Button>
+                 </Link>
                </div>
                {/* Decorative circles */}
                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/5 rounded-full group-hover:scale-110 transition-transform duration-700" />

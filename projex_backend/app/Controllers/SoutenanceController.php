@@ -25,8 +25,15 @@ final class SoutenanceController
         error_log("ScheduleSoutenance: " . date('Y-m-d H:i:s') . " Input=" . json_encode($input) . " User=" . $userId . "\n", 3, $logFile);
 
         try {
-            $id = Soutenance::create($pdo, (int)$input["projet_id"], $input["date"], $input["salle"] ?? null, $input["jury"] ?? null);
+            $id = Soutenance::create($pdo, (int)$input["projet_id"], $input["date"], $input["salle"] ?? null, $input["jury_membres"] ?? null);
             
+            // Handle structured jury members if provided
+            if (isset($input["jury"]) && is_array($input["jury"])) {
+                foreach ($input["jury"] as $member) {
+                    Soutenance::addJuryMember($pdo, $id, $member["user_id"] ?? null, $member["external_name"] ?? null, $member["role"] ?? "EXAMINATEUR");
+                }
+            }
+
             // Utiliser l'ID de session si admin_id est absent
             $actorId = isset($input["admin_id"]) && (int)$input["admin_id"] > 0 ? (int)$input["admin_id"] : (int)$userId;
             if ($actorId <= 0) $actorId = null;
@@ -51,6 +58,15 @@ final class SoutenanceController
         
         try {
             Soutenance::update($pdo, $id, $input);
+            
+            // Update jury members if provided
+            if (isset($input["jury"]) && is_array($input["jury"])) {
+                Soutenance::clearJuryMembers($pdo, $id);
+                foreach ($input["jury"] as $member) {
+                    Soutenance::addJuryMember($pdo, $id, $member["user_id"] ?? null, $member["external_name"] ?? null, $member["role"] ?? "EXAMINATEUR");
+                }
+            }
+            
             echo json_encode(["message" => "Soutenance mise à jour"]);
         } catch (Throwable $e) {
             http_response_code(500);

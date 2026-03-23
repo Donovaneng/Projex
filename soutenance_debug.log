@@ -1,8 +1,0 @@
-ScheduleSoutenance: 2026-03-16 15:19:23 Input={"projet_id":"7","date":"2026-03-06T00:00","salle":"AD224","jury":"","admin_id":1} User=1
-ScheduleSoutenance: ERROR: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`projex`.`soutenances`, CONSTRAINT `soutenances_ibfk_1` FOREIGN KEY (`projet_id`) REFERENCES `projets` (`id`) ON DELETE CASCADE)
-ScheduleSoutenance: 2026-03-16 15:19:26 Input={"projet_id":"7","date":"2026-03-06T00:00","salle":"AD224","jury":"","admin_id":1} User=1
-ScheduleSoutenance: ERROR: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`projex`.`soutenances`, CONSTRAINT `soutenances_ibfk_1` FOREIGN KEY (`projet_id`) REFERENCES `projets` (`id`) ON DELETE CASCADE)
-ScheduleSoutenance: 2026-03-16 15:28:31 Input={"projet_id":"7","date":"2026-03-06T00:00","salle":"AD224","jury":"","admin_id":1} User=1
-ScheduleSoutenance: ERROR: SQLSTATE[23000]: Integrity constraint violation: 1452 Cannot add or update a child row: a foreign key constraint fails (`projex`.`soutenances`, CONSTRAINT `soutenances_ibfk_1` FOREIGN KEY (`projet_id`) REFERENCES `projets` (`id`) ON DELETE CASCADE)
-ScheduleSoutenance: 2026-03-16 19:28:46 Input={"projet_id":"1","date":"2026-03-07T00:00","salle":"hj","jury":"bjh","admin_id":1} User=1
-ScheduleSoutenance: Success, ID=9

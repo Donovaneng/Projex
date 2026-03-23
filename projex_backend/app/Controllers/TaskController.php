@@ -2,7 +2,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../Models/Task.php';
-require_once __DIR__ . '/../Models/Project.php';
+require_once __DIR__ . '/../Models/Notification.php';
+require_once __DIR__ . '/../Models/AuditLog.php';
+require_once __DIR__ . '/../Models/Project.php'; // Keep Project.php as it's used in the controller
 
 final class TaskController
 {
@@ -131,25 +133,37 @@ final class TaskController
 
       if ($projectId <= 0 || $titre === "") {
           http_response_code(400);
-          echo json_encode(["error" => "Champs obligatoires manquants"]);
+          echo json_encode(["error" => "Le titre et le projet sont obligatoires."]);
           return;
       }
 
-      Task::create($pdo, $projectId, (int)$assignedTo, (int)$user["id"], $titre, $description, $dueDate);
-      
-      // Notify the assigned student
-      Notification::create(
-          $pdo,
-          (int)$assignedTo,
-          "Nouvelle tâche assignée",
-          "Une nouvelle tâche '" . $titre . "' vous a été assignée.",
-          "/student/tasks",
-          "TASK",
-          $projectId
-      );
+      // Gérer le cas où la date est une chaîne vide (souvent le cas en JS)
+      if (empty($dueDate)) {
+          $dueDate = null;
+      }
 
-      header("Content-Type: application/json");
-      echo json_encode(["message" => "Tâche créée avec succès"]);
+      try {
+          Task::create($pdo, $projectId, (int)$assignedTo, (int)$user["id"], $titre, $description, $dueDate);
+          
+          // N'envoyer de notification QUE si la personne assignée est différente de l'auteur (ex: Admin qui assigne une tâche à l'étudiant)
+          if ((int)$assignedTo !== (int)$user["id"]) {
+              Notification::create(
+                  $pdo,
+                  (int)$assignedTo,
+                  "Nouvelle tâche assignée",
+                  "Une nouvelle tâche '" . $titre . "' vous a été assignée.",
+                  "/student/tasks",
+                  "TASK",
+                  $projectId
+              );
+          }
+
+          header("Content-Type: application/json");
+          echo json_encode(["message" => "Tâche créée avec succès"]);
+      } catch (Exception $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la création de la tâche: " . $e->getMessage()]);
+      }
   }
 
   public static function apiUpdateStatus(PDO $pdo, ?int $taskId = null): void
@@ -160,15 +174,40 @@ final class TaskController
       $status = $input["status"] ?? "";
 
       $allowed = ["A_FAIRE", "EN_COURS", "TERMINE", "BLOQUE"];
-      if ($taskId <= 0 || !in_array($status, $allowed, true)) {
+      if ($id <= 0 || !in_array($status, $allowed, true)) {
           http_response_code(400);
           echo json_encode(["error" => "Données invalides"]);
           return;
       }
 
-      Task::updateStatus($pdo, $taskId, $status);
+      Task::updateStatus($pdo, $id, $status);
+      
+      // Audit Log
+      AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "UPDATE_TASK_STATUS", "TASK", $id, ["status" => $status]);
       
       header("Content-Type: application/json");
       echo json_encode(["message" => "Statut mis à jour"]);
+  }
+
+  public static function apiGetProjectTasks(PDO $pdo, int $projectId): void
+  {
+      AuthMiddleware::handle();
+      $tasks = Task::byProject($pdo, $projectId);
+      header("Content-Type: application/json");
+      echo json_encode(["tasks" => $tasks]);
+  }
+
+  public static function apiDelete(PDO $pdo, int $taskId): void
+  {
+      AuthMiddleware::handle();
+      
+      try {
+          Task::delete($pdo, $taskId);
+          header("Content-Type: application/json");
+          echo json_encode(["message" => "Tâche supprimée avec succès"]);
+      } catch (Exception $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la suppression de la tâche: " . $e->getMessage()]);
+      }
   }
 }

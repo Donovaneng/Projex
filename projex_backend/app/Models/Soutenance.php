@@ -19,11 +19,44 @@ final class Soutenance
             SELECT s.*, p.titre as projet_titre, u.nom, u.prenom 
             FROM soutenances s
             LEFT JOIN projects p ON s.projet_id = p.id
-            LEFT JOIN project_assignments pa ON p.id = pa.project_id
-            LEFT JOIN users u ON pa.etudiant_id = u.id
+            LEFT JOIN users u ON p.student_id = u.id
             ORDER BY s.date_soutenance ASC
         ");
+        $soutenances = $stmt->fetchAll();
+        
+        foreach ($soutenances as &$s) {
+            $s['jury'] = self::getJuryMembers($pdo, (int)$s['id']);
+        }
+        
+        return $soutenances;
+    }
+
+    public static function getJuryMembers(PDO $pdo, int $soutenanceId): array
+    {
+        $stmt = $pdo->prepare("
+            SELECT jm.*, u.nom, u.prenom, u.role as user_role
+            FROM jury_members jm
+            LEFT JOIN users u ON jm.user_id = u.id
+            WHERE jm.soutenance_id = ?
+            ORDER BY FIELD(jm.role, 'PRESIDENT', 'RAPPORTEUR', 'EXAMINATEUR', 'INVITE')
+        ");
+        $stmt->execute([$soutenanceId]);
         return $stmt->fetchAll();
+    }
+
+    public static function addJuryMember(PDO $pdo, int $soutenanceId, ?int $userId, ?string $externalName, string $role): void
+    {
+        $stmt = $pdo->prepare("
+            INSERT INTO jury_members (soutenance_id, user_id, external_name, role)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->execute([$soutenanceId, $userId, $externalName, $role]);
+    }
+
+    public static function clearJuryMembers(PDO $pdo, int $soutenanceId): void
+    {
+        $stmt = $pdo->prepare("DELETE FROM jury_members WHERE soutenance_id = ?");
+        $stmt->execute([$soutenanceId]);
     }
 
     public static function update(PDO $pdo, int $id, array $data): void

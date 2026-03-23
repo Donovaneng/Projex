@@ -9,7 +9,7 @@ import { useEffect } from 'react';
  * @param {React.ReactNode} children - Contenu de la modale
  * @param {string} maxWidth - Largeur maximale de la modale (ex: 'max-w-md', 'max-w-lg', etc.)
  */
-export default function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-md' }) {
+export default function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-md', padding = 'p-6' }) {
   
   // Fermer avec la touche Echap
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Overlay Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
@@ -40,23 +40,35 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
       />
 
       {/* Modal Content */}
-      <div className={`relative bg-white rounded-xl shadow-xl w-full ${maxWidth} transform transition-all flex flex-col max-h-[90vh]`}>
+      <div className={`relative bg-white rounded-[2rem] shadow-2xl w-full ${maxWidth} transform transition-all flex flex-col max-h-[90vh] overflow-hidden`}>
         
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
-          <h3 className="text-lg font-bold text-[#0B1C3F]">
-            {title}
-          </h3>
+        {/* Header (conditionally rendered) */}
+        {title && (
+          <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <h3 className="text-xl font-black text-[#0B1C3F]">
+              {title}
+            </h3>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        )}
+
+        {/* Close Button if no title */}
+        {!title && (
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-full transition-colors"
+            className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors z-30 bg-white/50 backdrop-blur-md"
           >
             <X size={20} />
           </button>
-        </div>
+        )}
 
         {/* Body (scrollable) */}
-        <div className="p-6 overflow-y-auto">
+        <div className={`${padding} overflow-y-auto flex-1`}>
           {children}
         </div>
         

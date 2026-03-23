@@ -98,10 +98,10 @@ const adminService = {
   },
 
   // Récupérer les statistiques du système (Admin)
-  getStats: async () => {
+  getStats: async (periodId = null) => {
     try {
-      const response = await api.get('/admin/stats');
-      return response.data;
+      const res = await api.get(periodId ? `/admin/stats?period_id=${periodId}` : '/admin/stats');
+      return res.data;
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors de la récupération des statistiques' };
     }
@@ -168,9 +168,9 @@ const adminService = {
   },
 
   // Rejeter une proposition
-  rejectProposal: async (projectId) => {
+  rejectProposal: async (projectId, motif) => {
     try {
-      const response = await api.post(`/admin/projects/${projectId}/reject`);
+      const response = await api.post(`/admin/projects/${projectId}/reject`, { motif });
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors du rejet du projet' };
@@ -216,12 +216,21 @@ const adminService = {
     }
   },
 
-  togglePeriod: async (periodId, active) => {
+  togglePeriod: async (id, active) => {
     try {
-      const response = await api.put(`/admin/periods/${periodId}/toggle`, { active });
-      return response.data;
+      const res = await api.post(`/admin/periods/${id}/toggle`, { actif: active });
+      return res.data;
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors de la mise à jour de la période' };
+    }
+  },
+
+  archivePeriod: async (id) => {
+    try {
+      const res = await api.post(`/admin/periods/${id}/archive`);
+      return res.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de l\'archivage de la période' };
     }
   },
 
@@ -309,6 +318,16 @@ const adminService = {
     }
   },
 
+  // Récupérer la chronologie du projet
+  getProjectTimeline: async (projectId) => {
+    try {
+      const response = await api.get(`/supervisor/projects/${projectId}/timeline`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la récupération de la chronologie' };
+    }
+  },
+
   // Détails approfondis d'un projet
   getProjectDetails: async (projectId) => {
     try {
@@ -345,6 +364,34 @@ const adminService = {
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors de la génération du rapport' };
+    }
+  },
+
+  // Gestion des tâches (Admin/Supervisor)
+  getProjectTasks: async (projectId) => {
+    try {
+      const response = await api.get(`/projects/${projectId}/tasks`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la récupération des tâches' };
+    }
+  },
+
+  createTask: async (taskData) => {
+    try {
+      const response = await api.post('/student/tasks/create', taskData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la création de la tâche' };
+    }
+  },
+
+  updateTaskStatus: async (taskId, status) => {
+    try {
+      const response = await api.put(`/tasks/${taskId}/status`, { status });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la mise à jour du statut' };
     }
   },
 };

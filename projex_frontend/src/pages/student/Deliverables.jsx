@@ -175,7 +175,7 @@ export default function StudentDeliverables() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Mes Livrables">
       <div className="max-w-7xl mx-auto space-y-8">
         
         <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

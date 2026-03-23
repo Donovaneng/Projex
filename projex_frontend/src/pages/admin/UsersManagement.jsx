@@ -173,7 +173,7 @@ export default function UsersManagement() {
 
   if (loading && searchQuery === "" && roleFilter === "" && statusFilter === "") {
     return (
-      <DashboardLayout>
+      <DashboardLayout pageTitle="Gestion des Utilisateurs">
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader size="lg" text="Chargement des utilisateurs..." />
         </div>
@@ -182,7 +182,7 @@ export default function UsersManagement() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout pageTitle="Gestion des Utilisateurs">
       <div className="space-y-8 max-w-7xl mx-auto">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

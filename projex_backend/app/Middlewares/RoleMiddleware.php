@@ -27,6 +27,7 @@ final class RoleMiddleware
     }
 
     $userRole = $_SESSION["user"]["role"] ?? "";
+    
     // normalize roles to array
     if (is_string($roles)) {
       $roles = [$roles];

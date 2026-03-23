@@ -4,7 +4,7 @@ import { formatFileUrl } from '../../utils/file';
 import notificationService from "../../services/notificationService";
 import { Link } from "react-router-dom";
 
-export default function Navbar({ user, onMenuClick }) {
+export default function Navbar({ user, onMenuClick, pageTitle }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -24,9 +24,17 @@ export default function Navbar({ user, onMenuClick }) {
 
   useEffect(() => {
     fetchNotifications();
+    
+    // Listen for custom event from Notifications page
+    window.addEventListener('notificationsUpdated', fetchNotifications);
+    
     // Polling every 30 seconds for real-time-like updates
     const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notificationsUpdated', fetchNotifications);
+    };
   }, [fetchNotifications]);
 
   // Close dropdown when clicking outside
@@ -61,8 +69,8 @@ export default function Navbar({ user, onMenuClick }) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <h2 className="text-lg sm:text-xl font-bold text-[#0B1C3F] truncate max-w-[150px] sm:max-w-none">
-          Tableau de bord
+        <h2 className="text-lg sm:text-xl font-black text-[#0B1C3F] truncate max-w-[200px] sm:max-w-none tracking-tight">
+          {pageTitle || "Tableau de bord"}
         </h2>
       </div>
 

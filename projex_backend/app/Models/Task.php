@@ -63,4 +63,11 @@ final class Task
 
     $stmt->execute([$status, $taskId]);
   }
+
+  // supprimer une tâche
+  public static function delete(PDO $pdo, int $taskId): void
+  {
+    $stmt = $pdo->prepare("DELETE FROM taches WHERE id = ?");
+    $stmt->execute([$taskId]);
+  }
 }

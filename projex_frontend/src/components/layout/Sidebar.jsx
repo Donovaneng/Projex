@@ -9,6 +9,7 @@ import {
   Settings,
   Bell,
   GraduationCap,
+  MessageSquare,
   X
 } from "lucide-react";
 import logo from "../../assets/projex.png";
@@ -27,6 +28,7 @@ export default function Sidebar({ role, isOpen, onClose }) {
       { name: "Livrables", path: "/admin/deliverables", icon: FileText },
       { name: "Soutenances", path: "/admin/soutenances", icon: GraduationCap },
       { name: "Config Système", path: "/admin/settings", icon: Settings },
+      { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ],
 
@@ -35,13 +37,16 @@ export default function Sidebar({ role, isOpen, onClose }) {
       { name: "Mes Projets", path: "/student/projects", icon: FolderKanban },
       { name: "Mes Tâches", path: "/student/tasks", icon: ClipboardCheck },
       { name: "Livrables", path: "/student/deliverables", icon: FileText },
+      { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ],
 
     supervisor: [
       { name: "Tableau de Bord", path: "/supervisor/dashboard", icon: LayoutDashboard },
       { name: "Projets", path: "/supervisor/projects", icon: FolderKanban },
+      { name: "Livrables", path: "/supervisor/deliverables", icon: FileText },
       { name: "Évaluations", path: "/supervisor/evaluations", icon: ClipboardCheck },
+      { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ],
     // Fallback majuscule si data DB différente
@@ -53,6 +58,7 @@ export default function Sidebar({ role, isOpen, onClose }) {
       { name: "Livrables", path: "/admin/deliverables", icon: FileText },
       { name: "Soutenances", path: "/admin/soutenances", icon: GraduationCap },
       { name: "Config Système", path: "/admin/settings", icon: Settings },
+      { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ],
     ETUDIANT: [
@@ -60,20 +66,25 @@ export default function Sidebar({ role, isOpen, onClose }) {
       { name: "Mes Projets", path: "/student/projects", icon: FolderKanban },
       { name: "Mes Tâches", path: "/student/tasks", icon: ClipboardCheck },
       { name: "Livrables", path: "/student/deliverables", icon: FileText },
+      { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ],
     ENCADREUR_ACAD: [
       { name: "Tableau de Bord", path: "/supervisor/dashboard", icon: LayoutDashboard },
       { name: "Projets", path: "/supervisor/projects", icon: FolderKanban },
+      { name: "Livrables", path: "/supervisor/deliverables", icon: FileText },
       { name: "Évaluations", path: "/supervisor/evaluations", icon: ClipboardCheck },
       { name: "Soutenances", path: "/supervisor/soutenances", icon: GraduationCap },
+      { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ],
     ENCADREUR_PRO: [
       { name: "Tableau de Bord", path: "/supervisor/dashboard", icon: LayoutDashboard },
       { name: "Projets", path: "/supervisor/projects", icon: FolderKanban },
+      { name: "Livrables", path: "/supervisor/deliverables", icon: FileText },
       { name: "Évaluations", path: "/supervisor/evaluations", icon: ClipboardCheck },
       { name: "Soutenances", path: "/supervisor/soutenances", icon: GraduationCap },
+      { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ]
   };

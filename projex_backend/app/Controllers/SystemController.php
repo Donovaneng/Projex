@@ -113,7 +113,7 @@ final class SystemController
         RoleMiddleware::require("ADMIN");
         header("Content-Type: application/json");
         // Simulation d'une sauvegarde
-        AuditLog::log($pdo, $_SESSION["user_id"] ?? null, "BACKUP", "SYSTEM", null, ["message" => "Sauvegarde manuelle initiée"]);
+        AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "BACKUP", "SYSTEM", null, ["message" => "Sauvegarde manuelle initiée"]);
         echo json_encode(["message" => "Sauvegarde réussie (simulée)", "timestamp" => date("Y-m-d H:i:s")]);
     }
 
@@ -123,7 +123,22 @@ final class SystemController
         RoleMiddleware::require("ADMIN");
         header("Content-Type: application/json");
         // Simulation d'un rapport
-        AuditLog::log($pdo, $_SESSION["user_id"] ?? null, "REPORT", "SYSTEM", null, ["message" => "Génération rapport global"]);
+        AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "REPORT", "SYSTEM", null, ["message" => "Génération rapport global"]);
         echo json_encode(["message" => "Rapport généré avec succès", "url" => "#report-url-dummy"]);
+    }
+    public static function archivePeriod(PDO $pdo, int $id): void
+    {
+        AuthMiddleware::handle();
+        RoleMiddleware::require("ADMIN");
+        header("Content-Type: application/json");
+        try {
+            AcademicPeriod::archive($pdo, $id);
+            // Audit Log
+            AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "ARCHIVE_PERIOD", "ACADEMIC_PERIOD", $id);
+            echo json_encode(["message" => "Période archivée avec succès. Projets en cours marqués comme terminés."]);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(["error" => "Erreur lors de l'archivage: " . $e->getMessage()]);
+        }
     }
 }

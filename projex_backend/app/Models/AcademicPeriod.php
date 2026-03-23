@@ -30,4 +30,21 @@ final class AcademicPeriod
         $stmt = $pdo->prepare("DELETE FROM academic_periods WHERE id = ?");
         $stmt->execute([$id]);
     }
+
+    public static function getActive(PDO $pdo): ?array
+    {
+        $stmt = $pdo->query("SELECT * FROM academic_periods WHERE is_active = 1 LIMIT 1");
+        return $stmt->fetch() ?: null;
+    }
+
+    public static function archive(PDO $pdo, int $id): void
+    {
+        // 1. Marquer la période comme inactive
+        $stmt = $pdo->prepare("UPDATE academic_periods SET is_active = 0 WHERE id = ?");
+        $stmt->execute([$id]);
+
+        // 2. Passer tous les projets 'EN_COURS' de cette période en 'TERMINE' ou 'ARCHIVE'
+        $stmt = $pdo->prepare("UPDATE projects SET statut = 'TERMINE' WHERE period_id = ? AND statut = 'EN_COURS'");
+        $stmt->execute([$id]);
+    }
 }

@@ -51,6 +51,16 @@ const supervisorService = {
     }
   },
 
+  // Récupérer tous les livrables des projets assignés
+  getDeliverables: async () => {
+    try {
+      const response = await api.get('/supervisor/deliverables');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Erreur lors de la récupération de tous les livrables' };
+    }
+  },
+
   // Approuver un livrable
   approveDeliverable: async (deliverableId, feedback = '') => {
     try {

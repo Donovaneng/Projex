@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../Models/Project.php';
 require_once __DIR__ . '/../Models/User.php';
+require_once __DIR__ . '/../Models/AcademicPeriod.php';
+require_once __DIR__ . '/../Models/Notification.php';
 
 final class AdminProjectController
 {
@@ -47,7 +49,10 @@ final class AdminProjectController
       return;
     }
 
-    Project::create($pdo, $titre, $description !== "" ? $description : null, $date_debut ?: null, $date_fin ?: null, (int)$_SESSION["user"]["id"], "ADMIN");
+    $activePeriod = AcademicPeriod::getActive($pdo);
+    $periodId = $activePeriod ? (int)$activePeriod['id'] : null;
+
+    Project::create($pdo, $titre, $description !== "" ? $description : null, $date_debut ?: null, $date_fin ?: null, (int)$_SESSION["user"]["id"], "ADMIN", null, $periodId);
 
     // Retourner JSON si API call
     if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
@@ -130,6 +135,21 @@ final class AdminProjectController
     }
 
     if ($etudiantId) {
+      // Validation : Un étudiant ne peut avoir qu'un seul projet par période
+      $activePeriod = AcademicPeriod::getActive($pdo);
+      $periodId = $activePeriod ? (int)$activePeriod['id'] : null;
+      
+      $busyProject = Project::isStudentBusy($pdo, $etudiantId, $projectId, $periodId);
+      if ($busyProject) {
+        http_response_code(400);
+        header("Content-Type: application/json");
+        echo json_encode([
+            "error" => "Cet étudiant est déjà assigné au projet : " . $busyProject["titre"],
+            "details" => "Un étudiant ne peut pas avoir deux projets actifs pour la même période."
+        ]);
+        return;
+      }
+
       Project::assign($pdo, $projectId, $etudiantId, $acadId, $proId);
       
       // Notifications aux membres de l'équipe
@@ -190,6 +210,9 @@ final class AdminProjectController
       try {
           Project::update($pdo, $id, ["statut" => "EN_COURS"]);
           
+          // Audit Log
+          AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "APPROVE_PROJECT", "PROJECTS", $id);
+          
           // Notification à l'étudiant
           $project = Project::find($pdo, $id);
           if ($project && $project["student_id"]) {
@@ -211,7 +234,8 @@ final class AdminProjectController
 
       $filters = [
           "q" => $q,
-          "statut" => $statut
+          "statut" => $statut,
+          "period_id" => $_GET["period_id"] ?? null
       ];
 
       try {
@@ -227,12 +251,18 @@ final class AdminProjectController
   {
       header("Content-Type: application/json");
       try {
-          Project::update($pdo, $id, ["statut" => "REJETE"]);
+          $input = json_decode(file_get_contents('php://input'), true);
+          $motif = $input["motif"] ?? "Refusé par l'administration";
+
+          Project::update($pdo, $id, ["statut" => "REJETE", "motif_rejet" => $motif]);
+
+          // Audit Log
+          AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "REJECT_PROJECT", "PROJECTS", $id, ["motif" => $motif]);
 
           // Notification à l'étudiant
           $project = Project::find($pdo, $id);
           if ($project && $project["student_id"]) {
-              Notification::create($pdo, (int)$project["student_id"], "Projet Rejeté", "Votre proposition de projet '" . $project["titre"] . "' a été rejetée par l'administration.", "/student/projects");
+              Notification::create($pdo, (int)$project["student_id"], "Projet Rejeté", "Votre proposition de projet '" . $project["titre"] . "' a été rejetée par l'administration. Motif: " . $motif, "/student/projects");
           }
 
           echo json_encode(["message" => "Proposition rejetée"]);
@@ -246,11 +276,78 @@ final class AdminProjectController
   {
       header("Content-Type: application/json");
       try {
-          Project::update($pdo, $id, ["statut" => "CLOTURE"]);
-          echo json_encode(["message" => "Projet clôturé"]);
+          Project::update($pdo, $id, ["statut" => "TERMINE"]);
+          
+          // Audit Log
+          AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "CLOSE_PROJECT", "PROJECTS", $id);
+          
+          echo json_encode(["message" => "Projet terminé"]);
       } catch (Throwable $e) {
           http_response_code(500);
           echo json_encode(["error" => "Erreur lors de la clôture"]);
       }
   }
-}
+
+    public static function show(PDO $pdo, int $id): void
+    {
+        header("Content-Type: application/json");
+        try {
+            $project = Project::find($pdo, $id);
+            if (!$project) {
+                http_response_code(404);
+                echo json_encode(["error" => "Projet non trouvé"]);
+                return;
+            }
+
+            $project["progress"] = Project::getProgress($pdo, $id);
+
+            // Équipe (Étudiant + Encadreurs)
+            $stmt = $pdo->prepare("
+                SELECT u.id, u.nom, u.prenom, u.role, u.email, u.telephone, u.image_profil
+                FROM users u
+                WHERE u.id = (SELECT student_id FROM projects WHERE id = ?)
+                OR u.id IN (
+                    SELECT encadreur_acad_id FROM project_assignments WHERE project_id = ?
+                    UNION
+                    SELECT encadreur_pro_id FROM project_assignments WHERE project_id = ?
+                )
+            ");
+            $stmt->execute([$id, $id, $id]);
+            $team = $stmt->fetchAll();
+
+            // Livrables
+            require_once __DIR__ . "/../Models/Livrable.php";
+            $deliverables = Livrable::byProject($pdo, $id);
+
+            // Évaluations
+            require_once __DIR__ . "/../Models/Evaluation.php";
+            $evalAcad = Evaluation::findByProject($pdo, $id);
+            $evalPro = Evaluation::findProByProject($pdo, $id);
+
+            // Soutenance
+            require_once __DIR__ . "/../Models/Soutenance.php";
+            $stmt = $pdo->prepare("SELECT * FROM soutenances WHERE projet_id = ? LIMIT 1");
+            $stmt->execute([$id]);
+            $soutenance = $stmt->fetch() ?: null;
+
+            // Tâches
+            require_once __DIR__ . "/../Models/Task.php";
+            $tasks = Task::byProject($pdo, $id);
+
+            echo json_encode([
+                "project" => $project,
+                "team" => $team,
+                "deliverables" => $deliverables,
+                "tasks" => $tasks,
+                "evaluations" => [
+                    "academique" => $evalAcad,
+                    "professionnelle" => $evalPro
+                ],
+                "soutenance" => $soutenance
+            ]);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(["error" => $e->getMessage()]);
+        }
+    }
+}
