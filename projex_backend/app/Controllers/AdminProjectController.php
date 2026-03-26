@@ -12,6 +12,11 @@ final class AdminProjectController
   {
     $projects = Project::all($pdo);
     
+    // Calculer la progression pour chaque projet
+    foreach ($projects as &$p) {
+        $p["progress"] = Project::getProgress($pdo, (int)$p["id"]);
+    }
+    
     // Retourner JSON si c'est une API call
     if (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
       header("Content-Type: application/json");

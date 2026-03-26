@@ -1,22 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import adminService from "../../services/adminService";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Loader from "../../components/ui/Loader";
-import { Users, FolderKanban, AlertCircle, CheckCircle2, UserCheck, Edit3, FileSpreadsheet, RefreshCcw, Calendar } from "lucide-react";
+import { Users, FolderKanban, AlertCircle, CheckCircle2, UserCheck, Edit3, ShieldAlert, Award, FileSpreadsheet, RefreshCcw, Calendar } from "lucide-react";
 import { exportToExcel } from "../../utils/exportUtils";
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   PieChart, Pie, AreaChart, Area 
 } from 'recharts';
 
-const StatCard = ({ title, value, subtext, icon: Icon, color, textColor }) => (
+const StatCard = ({ title, value, subtext, icon: IconProp, color, textColor }) => (
   <Card className="border-slate-200 shadow-sm">
     <Card.Content className="p-6">
       <div className="flex items-center justify-between mb-4">
         <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
-          <Icon className={`h-6 w-6 ${textColor}`} />
+          {IconProp && <IconProp className={`h-6 w-6 ${textColor}`} />}
         </div>
         <span className="text-2xl font-bold text-[#0B1C3F]">{value}</span>
       </div>
@@ -44,7 +44,7 @@ export default function AdminDashboard() {
       const data = await adminService.getStats(periodId);
       setStats(data);
       setError("");
-    } catch (err) {
+    } catch {
       setError("Erreur lors du chargement des statistiques");
     } finally {
       setLoading(false);
@@ -57,8 +57,8 @@ export default function AdminDashboard() {
       setPeriods(res.periods || []);
       const active = res.periods?.find(p => Number(p.actif) === 1);
       if (active) setSelectedPeriod(active.id);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     }
   };
 
@@ -90,8 +90,8 @@ export default function AdminDashboard() {
         };
       });
       exportToExcel(exportData, `Projex_Grades_${new Date().toISOString().split('T')[0]}.xlsx`);
-    } catch (err) {
-      alert("Erreur lors de l'exportation Excel");
+    } catch {
+      // ignore
     }
   };
 

@@ -58,7 +58,7 @@ const ProjectTimeline = ({ projectId, service }) => {
         <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
           {events.length > 0 ? (
             events.map((event, idx) => (
-              <div key={idx} className="relative flex items-start gap-6 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+              <div key={`${event.type}-${event.id}`} className="relative flex items-start gap-6 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
                 <div className="absolute left-0 w-10 h-10 rounded-full bg-white border-2 border-slate-100 shadow-sm flex items-center justify-center z-10 mt-1">
                   {getIcon(event.type)}
                 </div>

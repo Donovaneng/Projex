@@ -6,7 +6,7 @@ import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
 import { 
   Award, ShieldCheck, Search, Filter, 
-  ArrowUpRight, Download, Calculator, User
+  Download, Calculator
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -23,8 +23,7 @@ export default function AdminEvaluations() {
         setLoading(true);
         const res = await adminService.getAllEvaluations();
         setEvaluations(res);
-      } catch (err) {
-        console.error(err);
+      } catch {
         setError('Impossible de charger les évaluations');
       } finally {
         setLoading(false);
@@ -32,7 +31,6 @@ export default function AdminEvaluations() {
     };
     loadData();
   }, []);
-
   const filterEvals = (list) => {
     if (!search) return list;
     return list.filter(e => 
@@ -65,6 +63,12 @@ export default function AdminEvaluations() {
           </div>
           <Button icon={Download} className="bg-[#1B3A4B] hover:bg-[#122834]">Exporter les notes</Button>
         </header>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6">
+            {error}
+          </div>
+        )}
 
         {/* Stats Grid Quick View */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -162,7 +166,9 @@ export default function AdminEvaluations() {
                              </div>
                           </td>
                           <td className="px-6 py-4">
-                             <p className="font-bold text-slate-700 truncate max-w-[300px]">{e.projet_titre}</p>
+                             <Link to={`/admin/projects/${e.projet_id}`} className="font-bold text-slate-700 hover:text-[#1E4AA8] transition-colors truncate max-w-[300px] block">
+                                {e.projet_titre}
+                             </Link>
                              <p className="text-[10px] text-slate-400 font-bold uppercase overflow-hidden">Évalué le {new Date(e.created_at).toLocaleDateString()}</p>
                           </td>
                           <td className="px-6 py-4 text-center">
@@ -195,7 +201,9 @@ export default function AdminEvaluations() {
                             </div>
                          </td>
                          <td className="px-6 py-4">
-                            <p className="font-bold text-slate-700 truncate max-w-[300px]">{e.projet_titre}</p>
+                            <Link to={`/admin/projects/${e.projet_id}`} className="font-bold text-slate-700 hover:text-[#1E4AA8] transition-colors truncate max-w-[300px] block">
+                               {e.projet_titre}
+                            </Link>
                             <p className="text-[10px] text-slate-400 font-bold uppercase overflow-hidden">Audit pro le {new Date(e.created_at).toLocaleDateString()}</p>
                          </td>
                          <td className="px-6 py-4 text-center">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, User, Clock, MessageSquare, Paperclip, FileText, ImageIcon, Download, Check, CheckCheck, X } from 'lucide-react';
 import api from '../../services/api';
 import { formatFileUrl } from '../../utils/file';
@@ -14,7 +14,7 @@ export default function ProjectChat({ projectId, currentUser }) {
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       const response = await api.get(`/projects/${projectId}/messages`);
       setMessages(response.data.messages || []);
@@ -23,13 +23,13 @@ export default function ProjectChat({ projectId, currentUser }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
     loadMessages();
     const interval = setInterval(loadMessages, 4000); // Polling every 4s
     return () => clearInterval(interval);
-  }, [projectId]);
+  }, [loadMessages]);
 
   useEffect(() => {
     if (scrollRef.current) {

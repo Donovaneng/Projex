@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   ClipboardCheck, 
   Star, 
@@ -52,7 +52,7 @@ export default function SupervisorEvaluations() {
 
   const isPro = user?.role === 'ENCADREUR_PRO';
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -74,17 +74,16 @@ export default function SupervisorEvaluations() {
           items: compsRes.competences.map(c => ({ competence_id: c.id, score: 3, libelle: c.libelle }))
         }));
       }
-    } catch (err) {
-      console.error('Erreur chargement données superviseur:', err);
+    } catch {
       setError('Impossible de charger les données.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [isPro]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleCreateEval = async (e) => {
     e.preventDefault();
@@ -284,8 +283,8 @@ export default function SupervisorEvaluations() {
                               </span>
                             ) : (
                               <div className="flex gap-1 justify-center">
-                                {evalItem.items?.slice(0, 3).map((it, idx) => (
-                                  <div key={idx} className="w-2 h-6 bg-blue-100 rounded-full overflow-hidden relative" title={it.libelle}>
+                                {evalItem.items?.slice(0, 3).map((it) => (
+                                  <div key={it.competence_id} className="w-2 h-6 bg-blue-100 rounded-full overflow-hidden relative" title={it.libelle}>
                                     <div 
                                       className="absolute bottom-0 left-0 w-full bg-blue-600 transition-all" 
                                       style={{ height: `${(it.score / 5) * 100}%` }} 

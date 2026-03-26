@@ -18,7 +18,6 @@ import Loader from '../../components/ui/Loader';
 export default function SupervisorProposals() {
   const [loading, setLoading] = useState(true);
   const [proposals, setProposals] = useState([]);
-  const [error, setError] = useState('');
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [comment, setComment] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -29,7 +28,7 @@ export default function SupervisorProposals() {
       const res = await supervisorService.getProposals();
       setProposals(res.proposals || []);
     } catch (err) {
-      setError('Impossible de charger les propositions.');
+      // ignore
       console.error(err);
     } finally {
       setLoading(false);
@@ -52,7 +51,7 @@ export default function SupervisorProposals() {
       setSelectedProposal(null);
       setComment('');
       loadProposals();
-    } catch (err) {
+    } catch {
       alert('Erreur lors du traitement de la proposition.');
     } finally {
       setActionLoading(false);

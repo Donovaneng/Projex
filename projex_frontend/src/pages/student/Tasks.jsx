@@ -22,8 +22,7 @@ export default function StudentTasks() {
       ]);
       setTasks(tasksRes.tasks || tasksRes || []);
       setProjects(projectsRes.projects || projectsRes || []);
-    } catch (err) {
-      console.error('Erreur lors du chargement des tâches:', err);
+    } catch {
       setError('Impossible de charger vos tâches. Veuillez réessayer plus tard.');
     } finally {
       setLoading(false);
@@ -40,8 +39,7 @@ export default function StudentTasks() {
         current.map(t => t.id === taskId ? { ...t, statut: newStatus } : t)
       );
       await studentService.updateTaskStatus(taskId, newStatus);
-    } catch (err) {
-      console.error('Erreur update:', err);
+    } catch {
       loadTasks();
     }
   };
@@ -51,7 +49,7 @@ export default function StudentTasks() {
     try {
       await studentService.deleteTask(taskId);
       loadTasks();
-    } catch (err) {
+    } catch {
       alert("Erreur lors de la suppression");
     }
   };
@@ -60,12 +58,11 @@ export default function StudentTasks() {
     ? tasks 
     : tasks.filter(t => t.project_id === parseInt(selectedProjectId));
 
-  const Column = ({ title, icon: Icon, colorClass, items, statusId }) => (
+  const Column = ({ title, colorClass, items, statusId }) => (
     <div className="flex flex-col gap-6">
       <div className={`group flex items-center justify-between p-5 rounded-[24px] border-b-4 ${colorClass} bg-white shadow-xl shadow-slate-200/40 relative overflow-hidden`}>
          <div className="flex items-center gap-3 relative z-10">
             <div className={`p-2 rounded-xl bg-opacity-10 ${statusId === 'A_FAIRE' ? 'bg-slate-500 text-slate-500' : statusId === 'EN_COURS' ? 'bg-[#1E4AA8] text-[#1E4AA8]' : 'bg-emerald-500 text-emerald-500'}`}>
-               <Icon size={18} className="font-bold" />
             </div>
             <span className="font-black text-[#0B1C3F] uppercase tracking-tighter text-sm">{title}</span>
          </div>
@@ -132,6 +129,16 @@ export default function StudentTasks() {
     </div>
   );
 
+  if (loading) {
+    return (
+      <DashboardLayout pageTitle="Mes Tâches & Suivi">
+        <div className="flex justify-center items-center h-[60vh]">
+          <Loader size="lg" text="Chargement de vos tâches..." />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout pageTitle="Mes Tâches & Suivi">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -171,21 +178,18 @@ export default function StudentTasks() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <Column 
             title="À Faire" 
-            icon={LayoutList} 
             colorClass="text-slate-400 border-slate-200" 
             items={filteredTasks.filter(t => t.statut === 'A_FAIRE')}
             statusId="A_FAIRE" 
           />
           <Column 
             title="En Cours" 
-            icon={Clock} 
             colorClass="text-[#1E4AA8] border-[#1E4AA8]" 
             items={filteredTasks.filter(t => t.statut === 'EN_COURS' || t.statut === 'EN_ATTENTE')}
             statusId="EN_COURS" 
           />
           <Column 
             title="Terminé" 
-            icon={CheckCircle} 
             colorClass="text-green-500 border-green-500" 
             items={filteredTasks.filter(t => t.statut === 'TERMINE')}
             statusId="TERMINE" 

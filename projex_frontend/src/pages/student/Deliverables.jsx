@@ -48,8 +48,7 @@ export default function StudentDeliverables() {
       setDeliverables(delivRes.deliverables || delivRes || []);
       setProjects(projRes.projects || projRes || []);
 
-    } catch (err) {
-      console.error('Erreur lors du chargement des données:', err);
+    } catch {
       setError('Impossible de charger vos livrables.');
     } finally {
       setLoading(false);
@@ -95,8 +94,8 @@ export default function StudentDeliverables() {
       setIsDiscussionOpen(true);
       const res = await studentService.getDeliverableComments(deliv.id);
       setComments(res.comments || []);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     }
   };
 
@@ -108,7 +107,7 @@ export default function StudentDeliverables() {
       setNewComment('');
       const res = await studentService.getDeliverableComments(selectedLivrable.id);
       setComments(res.comments || []);
-    } catch (err) {
+    } catch {
       alert("Erreur lors de l'envoi du commentaire");
     }
   };
@@ -136,7 +135,7 @@ export default function StudentDeliverables() {
       setIsModalOpen(false);
       setIsEditMode(false);
       loadData();
-    } catch (err) {
+    } catch {
       alert("Erreur lors de la mise à jour");
     } finally {
       setIsUploading(false);

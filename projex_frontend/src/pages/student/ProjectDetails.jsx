@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuth } from '../../hooks/useAuth';
@@ -36,7 +36,7 @@ export default function StudentProjectDetails() {
   const [newTask, setNewTask] = useState({ titre: '', description: '', due_date: '' });
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
 
-  const loadProjectDetails = async () => {
+  const loadProjectDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -54,13 +54,12 @@ export default function StudentProjectDetails() {
       setProject(foundProject);
       setTasks((tasksRes.tasks || []).filter(t => t.project_id === foundProject.id));
 
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Impossible de charger les détails du projet.');
+    } catch {
+      setError('Impossible de charger les détails du projet.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   const handleAddTask = async (e) => {
     e.preventDefault();
@@ -75,7 +74,7 @@ export default function StudentProjectDetails() {
       setNewTask({ titre: '', description: '', due_date: '' });
       setIsAddingTask(false);
       loadProjectDetails();
-    } catch (err) {
+    } catch {
       alert("Erreur lors de la création de la tâche");
     } finally {
       setIsSubmittingTask(false);
@@ -87,7 +86,7 @@ export default function StudentProjectDetails() {
      try {
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, statut: nextStatus } : t));
         await studentService.updateTaskStatus(taskId, nextStatus);
-     } catch (err) {
+     } catch {
         loadProjectDetails();
      }
   };
@@ -97,14 +96,14 @@ export default function StudentProjectDetails() {
     try {
       await studentService.deleteTask(taskId);
       loadProjectDetails();
-    } catch (err) {
+    } catch {
       alert("Erreur lors de la suppression");
     }
   };
 
   useEffect(() => {
     loadProjectDetails();
-  }, [id]);
+  }, [loadProjectDetails]);
 
   if (loading) {
     return (

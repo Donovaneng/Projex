@@ -29,7 +29,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-//Bootstrap : session + connexion DB
+// Bootstrap : session + connexion DB
+set_exception_handler(function ($e) {
+    $errorMsg = "[" . date("Y-m-d H:i:s") . "] EXCEPTION: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine() . "\n" . $e->getTraceAsString() . "\n\n";
+    file_put_contents(__DIR__ . '/../storage/logs/api_errors.log', $errorMsg, FILE_APPEND);
+    
+    header("Content-Type: application/json");
+    http_response_code(500);
+    echo json_encode([
+        "error" => "Global Exception",
+        "message" => $e->getMessage(),
+        "file" => basename($e->getFile()),
+        "line" => $e->getLine()
+    ]);
+    exit;
+});
+
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    if (!(error_reporting() & $errno)) return;
+    throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+});
+
 $pdo = require __DIR__ . '/../bootstrap.php';
 
 //Chargement des classes (une seule fois)
@@ -146,6 +166,16 @@ $router->get("/admin/users_pending", function () {
 $router->post("/api/admin/users/activate", function () use ($pdo) {
   RoleMiddleware::require("ADMIN");
   AdminController::activate($pdo);
+});
+
+$router->get("/api/admin/users/:id", function ($id) use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    AdminController::getUser($pdo, (int)$id);
+});
+
+$router->put("/api/admin/users/:id", function ($id) use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    AdminController::updateUser($pdo, (int)$id);
 });
 
 // Admin - Stats
@@ -390,6 +420,9 @@ $router->get("/api/student/projects", function () use ($pdo) {
   AuthMiddleware::handle();
   $user = $_SESSION["user"];
   $project = Project::findByStudent($pdo, (int)$user["id"]);
+  if ($project && isset($project["id"])) {
+      $project["progress"] = Project::getProgress($pdo, (int)$project["id"]);
+  }
   header("Content-Type: application/json");
   echo json_encode(["projects" => $project ? [$project] : []]);
 });
@@ -486,15 +519,26 @@ $router->get("/api/supervisor/students", function () use ($pdo) {
   $user = $_SESSION["user"];
   // Logic to find students assigned to this supervisor
   $stmt = $pdo->prepare("
-    SELECT u.id, u.nom, u.prenom, u.email, p.titre AS projet_titre
+    SELECT u.id, u.nom, u.prenom, u.email, p.titre AS projet_titre, p.id AS project_id
     FROM project_assignments pa
     JOIN users u ON u.id = pa.etudiant_id
     JOIN projects p ON p.id = pa.project_id
     WHERE pa.encadreur_acad_id = ? OR pa.encadreur_pro_id = ?
   ");
   $stmt->execute([(int)$user["id"], (int)$user["id"]]);
+  $students = $stmt->fetchAll();
+  
+  // Ajouter la progression pour chaque étudiant
+  foreach ($students as &$s) {
+      if (isset($s["project_id"])) {
+          $s["progression"] = Project::getProgress($pdo, (int)$s["project_id"]);
+      } else {
+          $s["progression"] = 0;
+      }
+  }
+
   header("Content-Type: application/json");
-  echo json_encode(["students" => $stmt->fetchAll()]);
+  echo json_encode(["students" => $students]);
 });
 
 $router->get("/api/supervisor/evaluations", function () use ($pdo) {

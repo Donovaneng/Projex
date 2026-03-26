@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import DashboardLayout from '../components/layout/DashboardLayout';
-import notificationService from '../services/notificationService';
-import { useAuth } from '../hooks/useAuth';
 import { Bell, Check, Trash2, Calendar, ClipboardList, FileCheck, MessageSquare, AlertCircle, Info, CheckCircle2, MoreVertical, ExternalLink } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Loader from '../components/ui/Loader';
 import { Link } from 'react-router-dom';
+import notificationService from '../services/notificationService';
+import DashboardLayout from '../components/layout/DashboardLayout';
 
 const getIcon = (type) => {
   switch (type) {
@@ -20,7 +19,6 @@ const getIcon = (type) => {
 };
 
 export default function Notifications() {
-  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,7 +29,7 @@ export default function Notifications() {
       setLoading(true);
       const res = await notificationService.getNotifications();
       setNotifications(res.notifications || []);
-    } catch (err) {
+    } catch {
       setError('Impossible de charger les notifications.');
     } finally {
       setLoading(false);
@@ -47,8 +45,8 @@ export default function Notifications() {
       await notificationService.markAsRead(id);
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: 1 } : n));
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     }
   };
 
@@ -57,8 +55,8 @@ export default function Notifications() {
       await notificationService.markAllAsRead();
       setNotifications(notifications.map(n => ({ ...n, is_read: 1 })));
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     }
   };
 
@@ -67,8 +65,8 @@ export default function Notifications() {
       await notificationService.delete(id);
       setNotifications(notifications.filter(n => n.id !== id));
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     }
   };
 
@@ -78,8 +76,8 @@ export default function Notifications() {
       await notificationService.deleteAll();
       setNotifications([]);
       window.dispatchEvent(new CustomEvent('notificationsUpdated'));
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     }
   };
 

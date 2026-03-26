@@ -295,10 +295,16 @@ final class AuthController
   {
     header("Content-Type: application/json");
     if (isset($_SESSION["user"])) {
-        echo json_encode(["user" => $_SESSION["user"]]);
+        echo json_encode([
+            "authenticated" => true,
+            "user" => $_SESSION["user"]
+        ]);
     } else {
-        http_response_code(401);
-        echo json_encode(["error" => "Non authentifié"]);
+        // On renvoie 200 au lieu de 401 pour éviter le rouge dans la console au démarrage
+        echo json_encode([
+            "authenticated" => false,
+            "user" => null
+        ]);
     }
   }
 

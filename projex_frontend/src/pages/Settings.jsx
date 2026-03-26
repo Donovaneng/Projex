@@ -23,7 +23,7 @@ export default function Settings() {
             try {
                 const data = await userService.getProfile();
                 setProfile(data.user || {});
-            } catch (err) {
+            } catch {
                 setError('Impossible de charger votre profil.');
             } finally {
                 setLoading(false);
@@ -38,10 +38,10 @@ export default function Settings() {
         setSuccess('');
         setUpdating(true);
         try {
-            const data = await userService.updateProfile(profile);
+            await userService.updateProfile(profile);
             setSuccess('Profil mis à jour avec succès.');
-        } catch (err) {
-            setError(err.response?.data?.error || 'Erreur lors de la mise à jour.');
+        } catch {
+            setError('Erreur lors de la mise à jour.');
         } finally {
             setUpdating(false);
         }
@@ -127,8 +127,8 @@ export default function Settings() {
                                                     setProfile({...profile, image_profil: newPath});
                                                     setUser({...user, image_profil: newPath});
                                                     setSuccess("Photo de profil mise à jour !");
-                                                } catch (err) {
-                                                    setError(err.response?.data?.error || "Erreur d'upload");
+                                                } catch {
+                                                    setError("Erreur d'upload");
                                                 } finally {
                                                     setUpdating(false);
                                                 }

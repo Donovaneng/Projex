@@ -1,17 +1,9 @@
-import { createContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api';
-
-/**
- * Contexte d'authentification pour fournir l'utilisateur actuel et
- * les méthodes de gestion de session (login, register, logout)
- * à l'ensemble de l'application.
- */
-export const AuthContext = createContext(null);
+import { AuthContext } from './AuthContextInstance';
 
 /**
  * Fournisseur du contexte d'authentification.
- * Gère l'état global de l'utilisateur et gère les appels API 
- * liés à l'authentification.
  * 
  * @param {Object} props
  * @param {React.ReactNode} props.children Les composants enfants qui auront accès au contexte.
@@ -32,11 +24,14 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
 
       try {
-        // NOTE: Une erreur 401 (Unauthorized) ici est NORMALE si vous n'êtes pas connecté.
         const response = await api.get('/me');
 
         if (isMounted) {
-          setUser(response.data.user);
+          if (response.data.authenticated) {
+            setUser(response.data.user);
+          } else {
+            setUser(null);
+          }
         }
 
       } catch {

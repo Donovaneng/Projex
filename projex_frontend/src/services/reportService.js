@@ -94,7 +94,7 @@ const reportService = {
     if (typeof jury === 'string') {
         try {
             jury = JSON.parse(jury);
-        } catch (e) {
+        } catch {
             jury = [];
         }
     }

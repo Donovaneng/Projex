@@ -84,8 +84,8 @@ export default function SupervisorHelp() {
             <HelpCircle size={150} className="absolute -right-10 -bottom-10 text-white/5 rotate-12" />
           </section>
 
-          {sections.map((section, idx) => (
-            <Card key={idx} className="border-none shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform duration-300">
+          {sections.map((section) => (
+            <Card key={section.title} className="border-none shadow-xl shadow-slate-200/50 rounded-3xl overflow-hidden hover:scale-[1.02] transition-transform duration-300">
               <Card.Content className="p-8">
                 <div className={`w-14 h-14 rounded-2xl ${section.bg} ${section.color} flex items-center justify-center mb-6`}>
                   <section.icon size={28} />

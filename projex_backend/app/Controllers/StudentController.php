@@ -58,6 +58,7 @@ final class StudentController
     }
 
     $titre = trim($_POST["titre"] ?? "");
+    $description = trim($_POST["description"] ?? "");
     $type = trim($_POST["type"] ?? "RAPPORT");
     $versionNum = (int)($_POST["version_num"] ?? 1);
 
@@ -162,6 +163,7 @@ final class StudentController
       (int)$project["id"],
       $studentId,
       $titre,
+      $description,
       $type,
       $versionNum,
       $originalName,

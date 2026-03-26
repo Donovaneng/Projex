@@ -276,15 +276,15 @@ export default function Login() {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1E4AA8] px-4 py-3.5 text-sm font-semibold text-white transition shadow-lg shadow-[#1E4AA8]/20 hover:bg-[#173B86] focus:outline-none focus:ring-4 focus:ring-[#1E4AA8]/15 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
-                  <>
+                  <span className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Connexion...
-                  </>
+                  </span>
                 ) : (
-                  <>
+                  <span className="flex items-center gap-2">
                     Se connecter
                     <ArrowRight className="h-4 w-4" />
-                  </>
+                  </span>
                 )}
               </button>
 
@@ -297,16 +297,18 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="flex justify-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setError("La connexion Google a échoué.")}
-                  theme="outline"
-                  shape="pill"
-                  size="large"
-                  text="continue_with"
-                  width="360"
-                />
+              <div className="flex justify-center" key="google-auth-island">
+                <div id="google-login-container">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError("La connexion Google a échoué.")}
+                    theme="outline"
+                    shape="pill"
+                    size="large"
+                    text="continue_with"
+                    width="360"
+                  />
+                </div>
               </div>
             </form>
 

@@ -11,10 +11,6 @@ export default function LegacyRedirect() {
 
   useEffect(() => {
     const path = location.pathname;
-    const search = location.search;
-    const params = new URLSearchParams(search);
-    const id = params.get('id') || params.get('project_id');
-
     // Redirections spécifiques
     if (path.includes('/projects/livrables') || path.includes('/student/livrables')) {
       navigate('/student/deliverables', { replace: true });

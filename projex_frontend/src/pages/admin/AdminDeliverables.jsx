@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import adminService from '../../services/adminService';
 import Card from '../../components/ui/Card';
@@ -86,8 +88,16 @@ export default function AdminDeliverables() {
                           </div>
                           <div>
                             <p className="font-bold text-[#0B1C3F]">{item.titre}</p>
-                            <p className="text-xs text-slate-500 flex items-center gap-1">
-                              <Folder size={12} /> {item.projet_titre}
+                            {item.description && (
+                              <p className="text-[10px] text-slate-500 italic mt-0.5 line-clamp-1" title={item.description}>
+                                {item.description}
+                              </p>
+                            )}
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                              <Folder size={12} /> 
+                              <Link to={`/admin/projects/${item.project_id}`} className="hover:text-[#1E4AA8] hover:underline transition-colors">
+                                {item.projet_titre}
+                              </Link>
                             </p>
                           </div>
                         </div>

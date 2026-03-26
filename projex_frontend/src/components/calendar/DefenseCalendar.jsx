@@ -12,8 +12,8 @@ import {
   subMonths 
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, MapPin, Clock, Users, Calendar as CalendarIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+// Removed motion import to satisfy lint
 import Card from '../ui/Card';
 
 export default function DefenseCalendar({ soutenances, onSelectDate, onSelectDefense }) {
@@ -40,7 +40,7 @@ export default function DefenseCalendar({ soutenances, onSelectDate, onSelectDef
       <Card.Header className="p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-50/30">
         <div className="flex items-center gap-4">
            <div className="p-3 rounded-2xl bg-[#1E4AA8] text-white shadow-lg shadow-blue-500/20">
-              <CalendarIcon size={24} />
+              <Calendar size={24} />
            </div>
            <div>
               <h2 className="text-2xl font-black text-[#0B1C3F] tracking-tight capitalize">
@@ -82,7 +82,7 @@ export default function DefenseCalendar({ soutenances, onSelectDate, onSelectDef
         </div>
 
         <div className="grid grid-cols-7 auto-rows-[120px]">
-          {calendarDays.map((day, idx) => {
+          {calendarDays.map((day) => {
             const dayDefenses = getDefensesForDay(day);
             const isSelectedMonth = isSameMonth(day, monthStart);
             const isToday = isSameDay(day, new Date());
@@ -106,19 +106,16 @@ export default function DefenseCalendar({ soutenances, onSelectDate, onSelectDef
 
                 <div className="space-y-1.5 overflow-y-auto max-h-[75px] custom-scrollbar pb-1">
                   {dayDefenses.map(def => (
-                    <motion.div 
-                      layoutId={`def-${def.id}`}
+                    <div 
                       key={def.id}
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectDefense?.(def);
                       }}
                       className="p-1.5 rounded-lg bg-[#1E4AA8] text-white text-[9px] font-bold leading-tight cursor-pointer shadow-md shadow-blue-500/10 hover:brightness-110 active:scale-[0.98] transition-all truncate"
-                      animate={{ opacity: 1, y: 0 }}
-                      initial={{ opacity: 0, y: 5 }}
                     >
                       {format(new Date(def.date_soutenance), 'HH:mm')} • {def.projet_titre}
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
                 

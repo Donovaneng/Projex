@@ -7,7 +7,7 @@ import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
 import { 
   FolderKanban, Users, FileText, Award, Calendar, 
-  ArrowLeft, Download, ExternalLink, User, ShieldCheck,
+  ArrowLeft, Download, ExternalLink, ShieldCheck,
   CheckCircle2, Clock
 } from 'lucide-react';
 import { formatFileUrl } from '../../utils/file';
@@ -35,10 +35,9 @@ export default function AdminProjectDetails() {
         setLoading(true);
         const res = await adminService.getProjectDetails(id);
         setData(res);
-      } catch (err) {
-        console.error(err);
-        setError('Impossible de charger les détails du projet');
-      } finally {
+      } catch {
+      setError('Impossible de charger les détails du projet.');
+    } finally {
         setLoading(false);
       }
     };
@@ -51,7 +50,7 @@ export default function AdminProjectDetails() {
     try {
       setIsSubmittingTask(true);
       // Trouve l'étudiant du projet pour l'assignation
-      const student = data.team.find(m => m.role === 'ETUDIANT');
+      const student = data.team?.find(m => m.role === 'ETUDIANT');
       await adminService.createTask({
         ...newTask,
         project_id: id,
@@ -62,8 +61,8 @@ export default function AdminProjectDetails() {
       // Recharger les données
       const res = await adminService.getProjectDetails(id);
       setData(res);
-    } catch (err) {
-      alert("Erreur lors de la création de la tâche");
+    } catch {
+      alert("Erreur lors de l'archivage.");
     } finally {
       setIsSubmittingTask(false);
     }
@@ -75,7 +74,7 @@ export default function AdminProjectDetails() {
         await adminService.updateTaskStatus(taskId, nextStatus);
         const res = await adminService.getProjectDetails(id);
         setData(res);
-     } catch (err) {
+     } catch {
         alert("Erreur lors de la mise à jour");
      }
   };
@@ -91,12 +90,38 @@ export default function AdminProjectDetails() {
     }
   };
 
+  const handleApproveProposal = async () => {
+    try {
+      await adminService.approveProposal(id);
+      alert('Proposition validée !');
+      // Recharger
+      const res = await adminService.getProjectDetails(id);
+      setData(res);
+    } catch (err) {
+      alert(err.error || 'Erreur lors de la validation.');
+    }
+  };
+
+  const handleRejectProposal = async () => {
+    const motif = window.prompt("Veuillez saisir le motif du rejet :");
+    if (motif === null) return;
+    try {
+      await adminService.rejectProposal(id, motif || "Refusé par l'administration");
+      alert('Proposition rejetée.');
+      // Recharger
+      const res = await adminService.getProjectDetails(id);
+      setData(res);
+    } catch (err) {
+      alert(err.error || 'Erreur lors du rejet.');
+    }
+  };
+
   const handleExportSheet = () => {
     if (!data) return;
     const projectInfo = {
        ...data.project,
-       prenom_etudiant: data.team.find(m => m.role === 'ETUDIANT')?.prenom,
-       nom_etudiant: data.team.find(m => m.role === 'ETUDIANT')?.nom,
+       prenom_etudiant: data.team?.find(m => m.role === 'ETUDIANT')?.prenom,
+       nom_etudiant: data.team?.find(m => m.role === 'ETUDIANT')?.nom,
     };
     reportService.generateProjectSheet(projectInfo);
   };
@@ -159,7 +184,28 @@ export default function AdminProjectDetails() {
                 PV Soutenance (PDF)
               </Button>
             )}
-            {currentUser.role === 'ADMIN' && project.statut !== 'TERMINE' && (
+            {currentUser.role === 'ADMIN' && project.statut === 'EN_ATTENTE' && (
+              <>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  icon={CheckCircle2} 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={handleApproveProposal}
+                >
+                  Valider la proposition
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-red-600 text-red-600 hover:bg-red-50"
+                  onClick={handleRejectProposal}
+                >
+                  Rejeter
+                </Button>
+              </>
+            )}
+            {currentUser.role === 'ADMIN' && project.statut !== 'TERMINE' && project.statut !== 'EN_ATTENTE' && project.statut !== 'REJETE' && (
               <Button 
                 variant="default" 
                 size="sm" 
@@ -474,14 +520,14 @@ export default function AdminProjectDetails() {
                     </div>
                     <div className="flex gap-4">
                        <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 ${
-                          team.some(m => m.role === 'ENCADREUR_ACAD') ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
+                          team?.some(m => m.role === 'ENCADREUR_ACAD') ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
                        }`}>
                           <Users size={14} />
                        </div>
                        <div>
                           <p className="text-xs font-bold text-slate-700">Équipe assignée</p>
                           <p className="text-[10px] text-slate-400 uppercase font-black">
-                             {team.length > 0 ? "Complété" : "En attente"}
+                             {team?.length > 0 ? "Complété" : "En attente"}
                           </p>
                        </div>
                     </div>

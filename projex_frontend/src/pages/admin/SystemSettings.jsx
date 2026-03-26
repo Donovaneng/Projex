@@ -9,8 +9,8 @@ import { Settings, Calendar, Tag, ShieldCheck, Plus, History as HistoryIcon, Clo
 
 export default function SystemSettings() {
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [periods, setPeriods] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -18,10 +18,13 @@ export default function SystemSettings() {
 
   const [newPeriod, setNewPeriod] = useState({ nom: '', debut: '', fin: '' });
   const [newCategory, setNewCategory] = useState({ nom: '' });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
+    if (isRefreshing) return;
     try {
-      setLoading(true);
+      setIsRefreshing(true);
+      if (!silent) setLoading(true);
       const [pRes, cRes, lRes] = await Promise.all([
         adminService.getPeriods(),
         adminService.getCategories(),
@@ -30,11 +33,11 @@ export default function SystemSettings() {
       setPeriods(pRes.periods || []);
       setCategories(cRes.categories || []);
       setAuditLogs(lRes.logs || []);
-    } catch (err) {
+    } catch {
       setError("Erreur lors du chargement des paramètres");
-      console.error(err);
     } finally {
-      setLoading(false);
+      setIsRefreshing(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -48,8 +51,8 @@ export default function SystemSettings() {
       setIsSubmitting(true);
       await adminService.createPeriod(newPeriod);
       setNewPeriod({ nom: '', debut: '', fin: '' });
-      loadData();
-    } catch (err) {
+      loadData(true);
+    } catch {
       alert("Erreur lors de la création de la période");
     } finally {
       setIsSubmitting(false);
@@ -62,8 +65,8 @@ export default function SystemSettings() {
       setIsSubmitting(true);
       await adminService.createCategory({ label: newCategory.nom });
       setNewCategory({ nom: '' });
-      loadData();
-    } catch (err) {
+      loadData(true);
+    } catch {
       alert("Erreur lors de la création de la catégorie");
     } finally {
       setIsSubmitting(false);
@@ -73,8 +76,8 @@ export default function SystemSettings() {
   const handleTogglePeriod = async (periodId, currentStatus) => {
     try {
       await adminService.togglePeriod(periodId, !currentStatus);
-      loadData();
-    } catch (err) {
+      loadData(true);
+    } catch {
       alert("Erreur lors de la mise à jour");
     }
   };
@@ -83,8 +86,8 @@ export default function SystemSettings() {
     try {
       setIsSubmitting(true);
       await adminService.archivePeriod(periodId);
-      loadData();
-    } catch (err) {
+      loadData(true);
+    } catch {
       alert("Erreur lors de l'archivage");
     } finally {
       setIsSubmitting(false);
@@ -95,8 +98,8 @@ export default function SystemSettings() {
     if (!window.confirm("Supprimer cette période ?")) return;
     try {
       await adminService.deletePeriod(periodId);
-      loadData();
-    } catch (err) {
+      loadData(true);
+    } catch {
       alert("Erreur lors de la suppression");
     }
   };
@@ -105,8 +108,8 @@ export default function SystemSettings() {
     if (!window.confirm("Supprimer cette catégorie ?")) return;
     try {
       await adminService.deleteCategory(categoryId);
-      loadData();
-    } catch (err) {
+      loadData(true);
+    } catch {
       alert("Erreur lors de la suppression");
     }
   };
@@ -124,6 +127,11 @@ export default function SystemSettings() {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-8 pb-12">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">
+            {error}
+          </div>
+        )}
         <header>
           <h1 className="text-3xl font-bold text-[#0B1C3F] flex items-center gap-3">
             <Settings className="h-8 w-8 text-[#1E4AA8]" />
@@ -156,25 +164,28 @@ export default function SystemSettings() {
                 </div>
                 <Button type="submit" icon={Plus} className="w-full" loading={isSubmitting}>Ajouter la période</Button>
               </form>
-              <div className="divide-y divide-slate-100">
-                {periods.map(p => (
-                  <div key={p.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div className="divide-y divide-slate-100" key="periods-list-container">
+                {Array.isArray(periods) && periods.map((p, idx) => (
+                  <div key={`period-item-${p.id || idx}`} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                     <div>
                       <div className="font-bold text-[#0B1C3F] flex items-center gap-2">
-                        {p.nom}
+                        {p.nom || p.label || 'Sans nom'}
                         {Number(p.actif) === 1 ? (
                           <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full uppercase font-bold">Actif</span>
                         ) : (
                           <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full uppercase font-bold">Inactif</span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-500 font-medium">Du {new Date(p.date_debut).toLocaleDateString('fr-FR')} au {new Date(p.date_fin).toLocaleDateString('fr-FR')}</div>
+                      <div className="text-xs text-slate-500 font-medium">
+                        {p.date_debut && p.date_fin ? `Du ${new Date(p.date_debut).toLocaleDateString('fr-FR')} au ${new Date(p.date_fin).toLocaleDateString('fr-FR')}` : 'Dates non définies'}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => handleTogglePeriod(p.id, Number(p.actif) === 1)}
                         className={`p-2 rounded-lg transition-colors ${Number(p.actif) === 1 ? 'text-green-600 hover:bg-green-50' : 'text-slate-400 hover:bg-slate-100'}`}
                         title={Number(p.actif) === 1 ? "Désactiver" : "Activer"}
+                        type="button"
                       >
                         <CheckSquare className="h-4 w-4" />
                       </button>
@@ -183,6 +194,7 @@ export default function SystemSettings() {
                           onClick={() => handleArchivePeriod(p.id)}
                           className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                           title="Archiver (clôturer la période)"
+                          type="button"
                         >
                           <Archive className="h-4 w-4" />
                         </button>
@@ -191,12 +203,18 @@ export default function SystemSettings() {
                         onClick={() => handleDeletePeriod(p.id)}
                         className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Supprimer"
+                        type="button"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
                 ))}
+                {(!periods || periods.length === 0) && (
+                  <div className="p-8 text-center text-slate-400 italic text-sm">
+                    Aucune période académique enregistrée.
+                  </div>
+                )}
               </div>
             </Card>
           </section>
@@ -221,20 +239,21 @@ export default function SystemSettings() {
                 </div>
                 <Button type="submit" icon={Plus} loading={isSubmitting}>Ajouter</Button>
               </form>
-              <div className="p-4 flex flex-wrap gap-3">
-                {categories.map(c => (
-                  <div key={c.id} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg group transition-all hover:pr-1">
-                    <span className="text-sm font-semibold">{c.label || c.nom}</span>
+              <div className="p-4 flex flex-wrap gap-3" key="categories-list-container">
+                {Array.isArray(categories) && categories.map((c, idx) => (
+                  <div key={`category-item-${c.id || idx}`} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg group transition-all hover:pr-1">
+                    <span className="text-sm font-semibold">{c.label || c.nom || 'Sans nom'}</span>
                     <button 
                       onClick={() => handleDeleteCategory(c.id)}
                       className="opacity-0 group-hover:opacity-100 p-1 hover:bg-purple-200 rounded text-purple-600 transition-all"
                       title="Supprimer"
+                      type="button"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
                   </div>
                 ))}
-                {categories.length === 0 && <p className="text-slate-400 text-sm italic w-full text-center py-4">Aucune catégorie définie.</p>}
+                {(!categories || categories.length === 0) && <p className="text-slate-400 text-sm italic w-full text-center py-4">Aucune catégorie définie.</p>}
               </div>
             </Card>
           </section>
@@ -309,16 +328,23 @@ export default function SystemSettings() {
                     <th className="px-6 py-3 text-right">Date / Heure</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {auditLogs.map(log => {
-                    const details = log.details ? JSON.parse(log.details) : null;
+                <tbody className="divide-y divide-slate-100" key="audit-logs-tbody">
+                  {Array.isArray(auditLogs) && auditLogs.map((log, idx) => {
+                    let details = null;
+                    try {
+                      details = log.details ? (typeof log.details === 'string' ? JSON.parse(log.details) : log.details) : null;
+                    } catch (e) {
+                      console.error("JSON Parse error for log", log.id);
+                    }
+                    
                     const getActionColor = (action) => {
+                       if (!action) return 'bg-blue-100 text-blue-700';
                        if (action.includes('CREATE') || action.includes('ACTIVATE') || action.includes('APPROVE')) return 'bg-green-100 text-green-700';
                        if (action.includes('DELETE') || action.includes('REJECT')) return 'bg-red-100 text-red-700';
                        return 'bg-blue-100 text-blue-700';
                     };
                     return (
-                      <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={`log-row-${log.id || idx}`} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="font-bold text-[#0B1C3F] flex items-center gap-2">
                              {log.prenom} {log.nom}

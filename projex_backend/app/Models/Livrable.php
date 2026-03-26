@@ -8,16 +8,17 @@ final class Livrable
         int $projectId,
         int $etudiantId,
         string $titre,
+        string $description,
         string $type,
         int $versionNum,
         string $fileName,
         string $filePath
     ): int {
         $stmt = $pdo->prepare("
-            INSERT INTO livrables (project_id, etudiant_id, titre, type, version_num, file_name, file_path, statut)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'SOUMIS')
+            INSERT INTO livrables (project_id, etudiant_id, titre, description, type, version_num, file_name, file_path, statut)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SOUMIS')
         ");
-        $stmt->execute([$projectId, $etudiantId, $titre, $type, $versionNum, $fileName, $filePath]);
+        $stmt->execute([$projectId, $etudiantId, $titre, $description, $type, $versionNum, $fileName, $filePath]);
 
         return (int)$pdo->lastInsertId();
     }

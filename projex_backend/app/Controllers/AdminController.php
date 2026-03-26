@@ -78,6 +78,24 @@ final class AdminController
     }
   }
 
+  public static function getUser(PDO $pdo, int $id): void
+  {
+      header("Content-Type: application/json");
+      try {
+          $user = User::findById($pdo, $id);
+          if (!$user) {
+              http_response_code(404);
+              echo json_encode(["error" => "Utilisateur non trouvé"]);
+              return;
+          }
+          unset($user["mot_de_passe"]);
+          echo json_encode(["user" => $user]);
+      } catch (Throwable $e) {
+          http_response_code(500);
+          echo json_encode(["error" => "Erreur lors de la récupération : " . $e->getMessage()]);
+      }
+  }
+
   public static function createUser(PDO $pdo): void
   {
       header("Content-Type: application/json");

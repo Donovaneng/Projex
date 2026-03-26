@@ -273,16 +273,21 @@ final class SupervisorController
       $timeline = [];
 
       // 1. Livrables
-      $livrables = $pdo->prepare("SELECT id, titre as label, 'LIVRABLE' as type, submitted_at as date, statut as meta, file_path FROM livrables WHERE projet_id = ?");
+      $livrables = $pdo->prepare("SELECT id, titre as label, description, 'LIVRABLE' as type, submitted_at as date, statut as meta, file_path FROM livrables WHERE project_id = ?");
       $livrables->execute([$projectId]);
       while($row = $livrables->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
 
-      // 2. Évaluations
+      // 2. Évaluations Académiques
       $evals = $pdo->prepare("SELECT id, 'Évaluation Académique' as label, 'EVALUATION' as type, created_at as date, CAST(note AS CHAR) as meta FROM evaluation_academique WHERE projet_id = ?");
       $evals->execute([$projectId]);
       while($row = $evals->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
 
-      // 3. Tâches
+      // 3. Évaluations Professionnelles
+      $evalsPro = $pdo->prepare("SELECT id, 'Évaluation Professionnelle' as label, 'EVALUATION' as type, created_at as date, 'PRO' as meta FROM evaluation_professionnelle WHERE projet_id = ?");
+      $evalsPro->execute([$projectId]);
+      while($row = $evalsPro->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
+
+      // 4. Tâches
       $tasks = $pdo->prepare("SELECT id, titre as label, 'TASK' as type, created_at as date, statut as meta FROM taches WHERE project_id = ?");
       $tasks->execute([$projectId]);
       while($row = $tasks->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }

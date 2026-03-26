@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import adminService from '../../services/adminService';
-import supervisorService from '../../services/supervisorService'; 
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
-import { FolderKanban, Plus, AlertTriangle, CalendarDays, Users, Link as LinkIcon } from 'lucide-react';
+import { FolderKanban, Plus, AlertTriangle, Users, Link as LinkIcon, Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
 
 export default function AdminProjectsManagement() {
   const [loading, setLoading] = useState(true);
@@ -41,7 +42,7 @@ export default function AdminProjectsManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -55,20 +56,19 @@ export default function AdminProjectsManagement() {
       setProjects(projectsRes.projects || projectsRes || []);
       setAllUsers(usersRes.users || []);
       setCategories(catRes.categories || []);
-    } catch (err) {
-      console.error('Erreur chargement données admin:', err);
+    } catch {
       setError('Impossible de charger les données.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery, statusFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       loadData();
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter]);
+  }, [loadData]);
 
   const handleCreateOrUpdateProject = async (e) => {
     e.preventDefault();
@@ -302,7 +302,12 @@ export default function AdminProjectsManagement() {
                             <FolderKanban size={18} />
                           </div>
                           <div>
-                            <p className="font-bold text-[#0B1C3F] max-w-[250px] truncate">{project.titre}</p>
+                            <Link 
+                              to={`/admin/projects/${project.id}`}
+                              className="font-bold text-[#0B1C3F] hover:text-[#1E4AA8] transition-colors max-w-[250px] truncate block"
+                            >
+                              {project.titre}
+                            </Link>
                             <p className="text-xs text-slate-500 max-w-[250px] truncate">{project.description}</p>
                           </div>
                         </div>
@@ -345,6 +350,16 @@ export default function AdminProjectsManagement() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
+                          <Link to={`/admin/projects/${project.id}`}>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              icon={Eye}
+                              title="Consulter les détails"
+                              className="text-blue-600 border-blue-100 hover:bg-blue-50"
+                            />
+                          </Link>
+
                           {project.statut === 'EN_ATTENTE' && (
                             <>
                               <Button 

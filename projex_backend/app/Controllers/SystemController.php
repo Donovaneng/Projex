@@ -12,7 +12,14 @@ final class SystemController
         AuthMiddleware::handle();
         RoleMiddleware::require("ADMIN");
         header("Content-Type: application/json");
-        echo json_encode(["periods" => AcademicPeriod::all($pdo)]);
+        $periods = AcademicPeriod::all($pdo);
+        // Map backend 'label' to frontend 'nom' for UI display
+        $mapped = array_map(function($p) {
+            $p['nom'] = $p['label'];
+            $p['actif'] = $p['is_active']; // legacy frontend compatibility
+            return $p;
+        }, $periods);
+        echo json_encode(["periods" => $mapped]);
     }
 
     public static function createPeriod(PDO $pdo): void
@@ -23,7 +30,13 @@ final class SystemController
         $input = json_decode(file_get_contents('php://input'), true);
         
         try {
-            AcademicPeriod::create($pdo, $input["label"], $input["date_debut"], $input["date_fin"]);
+            // Frontend sends 'nom', 'debut', 'fin'
+            // Backend Model expects 'label', 'date_debut', 'date_fin'
+            $label = $input["nom"] ?? $input["label"] ?? "Période sans nom";
+            $start = $input["debut"] ?? $input["date_debut"] ?? date("Y-m-d");
+            $end = $input["fin"] ?? $input["date_fin"] ?? date("Y-m-d");
+            
+            AcademicPeriod::create($pdo, $label, $start, $end);
             echo json_encode(["message" => "Période créée"]);
         } catch (Throwable $e) {
             http_response_code(500);
@@ -76,7 +89,8 @@ final class SystemController
         header("Content-Type: application/json");
         $input = json_decode(file_get_contents('php://input'), true);
         try {
-            AcademicPeriod::toggleActive($pdo, $id, (bool)$input["active"]);
+            $active = isset($input["active"]) ? (bool)$input["active"] : (bool)($input["actif"] ?? false);
+            AcademicPeriod::toggleActive($pdo, $id, $active);
             echo json_encode(["message" => "Statut de la période mis à jour"]);
         } catch (Throwable $e) {
             http_response_code(500);

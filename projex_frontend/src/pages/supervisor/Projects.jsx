@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   FolderKanban, 
   Users, 
@@ -53,7 +53,7 @@ export default function SupervisorProjects() {
   const { user } = useAuth();
   const isPro = user?.role === 'ENCADREUR_PRO';
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -65,17 +65,16 @@ export default function SupervisorProjects() {
         const compRes = await supervisorService.getCompetences();
         setCompetences(compRes.competences || []);
       }
-    } catch (err) {
-      console.error('Erreur chargement projets superviseur:', err);
+    } catch {
       setError('Impossible de charger les projets supervisés.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [isPro]);
 
   useEffect(() => {
     loadProjects();
-  }, []);
+  }, [loadProjects]);
 
   const openProjectDetails = async (projectId) => {
     try {
@@ -142,7 +141,6 @@ export default function SupervisorProjects() {
   };
 
   if (loading) {
-// ... existing loader code ...
     return (
       <DashboardLayout pageTitle="Mes Projets Étudiants">
         <div className="flex justify-center items-center min-h-[60vh]">
@@ -367,8 +365,8 @@ export default function SupervisorProjects() {
                      {timeline.length === 0 ? (
                        <p className="text-slate-400 italic">Aucune activité enregistrée.</p>
                      ) : (
-                       timeline.map((item, idx) => (
-                         <div key={idx} className="relative group/time">
+                       timeline.map((item) => (
+                         <div key={`${item.type}-${item.id}`} className="relative group/time">
                             <div className={`absolute -left-[29px] top-1 w-5 h-5 rounded-full border-4 border-white shadow-sm ring-2 ${
                               item.type === 'LIVRABLE' ? 'ring-blue-500 bg-blue-500' :
                               item.type === 'EVALUATION' ? 'ring-emerald-500 bg-emerald-500' :

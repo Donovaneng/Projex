@@ -31,8 +31,7 @@ export default function SupervisorDeliverables() {
       setError('');
       const res = await supervisorService.getDeliverables();
       setDeliverables(res.deliverables || []);
-    } catch (err) {
-      console.error('Erreur chargement livrables:', err);
+    } catch {
       setError('Impossible de charger les livrables.');
     } finally {
       setLoading(false);
@@ -48,8 +47,10 @@ export default function SupervisorDeliverables() {
     try {
       await supervisorService.approveDeliverable(id);
       loadDeliverables();
-    } catch (err) {
-      alert('Erreur lors de l\'approbation');
+    } catch {
+      alert("Erreur lors de la mise à jour");
+    } finally {
+      // Optional: Add a loading state or feedback here if needed
     }
   };
 
@@ -59,7 +60,7 @@ export default function SupervisorDeliverables() {
     try {
       await supervisorService.rejectDeliverable(id, reason);
       loadDeliverables();
-    } catch (err) {
+    } catch {
       alert('Erreur lors du rejet');
     }
   };
@@ -169,13 +170,18 @@ export default function SupervisorDeliverables() {
                            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1E4AA8] flex items-center justify-center">
                              <FileText size={24} />
                            </div>
-                           <div className="overflow-hidden max-w-[250px]">
-                             <p className="font-black text-[#0B1C3F] truncate">{item.titre}</p>
-                             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                               <Folder size={12} className="shrink-0" />
-                               <span className="truncate">{item.projet_titre}</span>
-                             </div>
-                           </div>
+                            <div className="overflow-hidden max-w-[250px]">
+                              <p className="font-black text-[#0B1C3F] truncate">{item.titre}</p>
+                              {item.description && (
+                                <p className="text-[10px] text-slate-500 italic mt-0.5 line-clamp-2 leading-tight" title={item.description}>
+                                  {item.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">
+                                <Folder size={12} className="shrink-0" />
+                                <span className="truncate">{item.projet_titre}</span>
+                              </div>
+                            </div>
                          </div>
                        </td>
                        <td className="px-8 py-6 text-orange-400">

@@ -6,9 +6,19 @@ import Navbar from './Navbar';
 export default function DashboardLayout({ children, pageTitle }) {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('sidebar_collapsed') === 'true';
+  });
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const closeSidebar = () => setSidebarOpen(false);
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   return (
     <div className="flex h-screen bg-[#F8FAFC]">
@@ -20,7 +30,13 @@ export default function DashboardLayout({ children, pageTitle }) {
         onClick={closeSidebar}
       ></div>
 
-      <Sidebar role={user?.role} isOpen={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar 
+        role={user?.role} 
+        isOpen={sidebarOpen} 
+        onClose={closeSidebar} 
+        isCollapsed={isCollapsed}
+        onToggleCollapse={toggleCollapse}
+      />
       
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <Navbar user={user} onMenuClick={toggleSidebar} pageTitle={pageTitle} />

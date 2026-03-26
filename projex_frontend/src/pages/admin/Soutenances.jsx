@@ -7,11 +7,10 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Loader from '../../components/ui/Loader';
 import { Calendar, Users, MapPin, GraduationCap, Plus, Trash2, Edit3, Save, X, Info, Clock, FileDown } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { format } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 import DefenseCalendar from '../../components/calendar/DefenseCalendar';
-import { motion, AnimatePresence } from 'framer-motion';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 export default function AdminSoutenances() {
   const { user } = useAuth();
@@ -32,8 +31,6 @@ export default function AdminSoutenances() {
   const [users, setUsers] = useState([]);
   const [memberToAdd, setMemberToAdd] = useState({ user_id: '', role: 'EXAMINATEUR', external_name: '' });
 
-  const [editNote, setEditNote] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(null);
   const [selectedSoutenance, setSelectedSoutenance] = useState(null);
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
 
@@ -50,8 +47,8 @@ export default function AdminSoutenances() {
       setProjects(pRes.projects?.filter(p => ['TERMINE', 'EN_COURS', 'CLOTURE'].includes(p.statut)) || []);
       // On garde les encadreurs pour le jury
       setUsers(uRes.users?.filter(u => ['ENCADREUR_ACAD', 'ENCADREUR_PRO'].includes(u.role)) || []);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -79,20 +76,10 @@ export default function AdminSoutenances() {
       setFormData({ projet_id: '', date: '', salle: '', jury_membres: '', jury: [] });
       loadData();
       if (selectedSoutenance) setSelectedSoutenance(null);
-    } catch (err) {
+    } catch {
       alert("Erreur lors de l'enregistrement");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdate = async (id, data) => {
-    try {
-      await adminService.updateSoutenance(id, data);
-      setEditNote(null);
-      loadData();
-    } catch (err) {
-      alert("Erreur lors de la mise à jour");
     }
   };
 
@@ -101,7 +88,7 @@ export default function AdminSoutenances() {
     try {
       await adminService.deleteSoutenance(id);
       loadData();
-    } catch (err) {
+    } catch {
       alert("Erreur lors de la suppression");
     }
   };
@@ -141,7 +128,6 @@ export default function AdminSoutenances() {
               <DefenseCalendar 
                 soutenances={soutenances} 
                 onSelectDate={(day) => {
-                   setSelectedDay(day);
                    setModalMode('create');
                    setFormData({
                       projet_id: '',
@@ -226,8 +212,8 @@ export default function AdminSoutenances() {
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Composition du Jury</p>
                              <div className="space-y-2">
                                 {selectedSoutenance.jury && selectedSoutenance.jury.length > 0 ? (
-                                   selectedSoutenance.jury.map((m, idx) => (
-                                      <div key={idx} className="flex justify-between items-center text-sm p-2 bg-slate-50 rounded-lg">
+                                   selectedSoutenance.jury.map((m) => (
+                                      <div key={m.user_id || m.external_name} className="flex justify-between items-center text-sm p-2 bg-slate-50 rounded-lg">
                                          <div className="flex flex-col">
                                             <span className="font-bold text-[#0B1C3F]">{m.prenom} {m.nom} {m.external_name}</span>
                                             <span className="text-[10px] text-[#1E4AA8] font-bold uppercase">{m.role}</span>
@@ -379,8 +365,8 @@ export default function AdminSoutenances() {
                   )}
 
                   <div className="space-y-2 mt-2">
-                    {formData.jury.map((m, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-xs p-2 bg-white rounded-lg border border-slate-100">
+                    {formData.jury.map((m) => (
+                      <div key={m.user_id || m.external_name} className="flex justify-between items-center text-xs p-2 bg-white rounded-lg border border-slate-100">
                         <span className="font-bold">{m.prenom} {m.nom} {m.external_name} ({m.role})</span>
                         <button 
                           type="button"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Send, 
   User, 
@@ -32,7 +32,7 @@ export default function GlobalMessages() {
   
   const messagesEndRef = useRef(null);
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     if (!isAdmin) return;
     try {
       const res = await api.get('/support/conversations');
@@ -40,9 +40,9 @@ export default function GlobalMessages() {
     } catch (err) {
       console.error('Erreur chargement conversations:', err);
     }
-  };
+  }, [isAdmin]);
 
-  const loadMessages = async (targetUserId = null) => {
+  const loadMessages = useCallback(async (targetUserId = null) => {
     try {
       if (isAdmin && !targetUserId) {
         setMessages([]);
@@ -61,7 +61,7 @@ export default function GlobalMessages() {
       setLoading(false);
       setMessagesLoading(false);
     }
-  };
+  }, [isAdmin, loadConversations]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,14 +77,14 @@ export default function GlobalMessages() {
       const interval = setInterval(() => loadMessages(), 7000);
       return () => clearInterval(interval);
     }
-  }, [isAdmin]);
+  }, [isAdmin, loadConversations, loadMessages]);
 
   useEffect(() => {
     if (selectedChat) {
       setMessagesLoading(true);
       loadMessages(selectedChat.user_id);
     }
-  }, [selectedChat]);
+  }, [selectedChat, loadMessages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -257,10 +257,10 @@ export default function GlobalMessages() {
                       <p className="text-[10px] font-black uppercase tracking-[.2em]">Aucun message</p>
                     </div>
                   ) : (
-                    messages.map((m, idx) => {
+                    messages.map((m) => {
                       const isMe = parseInt(m.sender_id) === parseInt(user.id);
                       return (
-                        <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
+                        <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
                           <div className={`max-w-[85%] sm:max-w-[70%] flex items-end gap-3 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                             {!isMe && (
                               <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-[#1E4AA8] shadow-sm font-black text-[10px] uppercase shrink-0">

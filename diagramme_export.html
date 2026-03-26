@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Diagramme de Classe PROJEX</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); }
+        .header { border-bottom: 2px solid #3498db; padding-bottom: 15px; margin-bottom: 25px; }
+        .controls { background: #e8f4fd; padding: 15px; border-radius: 8px; margin-bottom: 30px; font-size: 0.95em; line-height: 1.6; }
+        .loading { text-align: center; padding: 50px; color: #666; font-style: italic; }
+        .mermaid { display: flex; justify-content: center; overflow: auto; min-height: 500px; }
+        h1 { color: #1565c0; margin: 0; }
+        .live-btn { display: inline-block; background: #2ecc71; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 10px; }
+        .live-btn:hover { background: #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Diagramme de Classe UML PROJEX</h1>
+        </div>
+        
+        <div class="controls">
+            <p><strong>Options de Téléchargement :</strong></p>
+            <ul>
+                <li><strong>PDF</strong> : Faites <code>Ctrl + P</code> (sur Windows) et choisissez "Enregistrer au format PDF".</li>
+                <li><strong>Image</strong> : Si le diagramme s'affiche, faites un clic droit ou une capture d'écran.</li>
+                <li><strong>Secours</strong> : Si rien ne s'affiche, copiez le code ci-dessous et collez-le sur <a href="https://mermaid.live/" target="_blank">Mermaid.live</a>.</li>
+            </ul>
+            <a href="https://mermaid.live/edit" target="_blank" class="live-btn">Aller sur Mermaid Live Editor</a>
+        </div>
+
+        <div id="loading" class="loading">Chargement du diagramme... (si rien n'apparaît après 5 secondes, vérifiez votre connexion Internet)</div>
+
+        <div class="mermaid">
+classDiagram
+    direction TB
+
+    %% --- DÉFINITION DES CLASSES ---
+    class Utilisateur {
+        -int id
+        -string nom
+        -string prenom
+        -string email
+        -string telephone
+        -string role
+        -bool actif
+        -string image_profil
+        -datetime created_at
+        +authentifier() bool
+        +modifierProfil(donnees) void
+        +changerMotDePasse(ancien, nouveau) bool
+    }
+
+    class Etudiant {
+        -string matricule
+        -string filiere
+        -string niveau
+        +proposerProjet() int
+        +soumettreLivrable() int
+        +consulterSesLivrables() array
+        +postulerAProjet() bool
+    }
+
+    class Administrateur {
+        +activerCompte() void
+        +assignerEncadreurs() void
+        +gererPeriodes() void
+        +programmerSoutenance() void
+    }
+
+    class EncadreurAcad {
+        -string departement
+        -string grade
+        +evaluerProjet() void
+        +commenterLivrable() void
+    }
+
+    class EncadreurPro {
+        -string entreprise
+        -string poste
+        +evaluerCompetences() void
+    }
+
+    class Projet {
+        -int id
+        -string titre
+        -string description
+        -date date_debut
+        -string statut
+        -string motif_rejet
+        +valider() void
+        +rejeter(motif) void
+        +calculerProgression() int
+        +estDisponible() bool
+    }
+
+    class CategorieProjet {
+        -int id
+        -string label
+    }
+
+    class PeriodeAcademique {
+        -int id
+        -string label
+        -bool est_active
+    }
+
+    class Livrable {
+        -int id
+        -string titre
+        -string type
+        -int version_num
+        -string file_path
+        -string statut
+        +mettreAJourStatut() void
+        +ajouterCommentaire() void
+    }
+
+    class Tache {
+        -int id
+        -string titre
+        -string statut
+        +updateStatut() void
+    }
+
+    class Soutenance {
+        -int id
+        -datetime date_soutenance
+        -string salle
+        -float note_finale
+        +planifier() void
+        +enregistrerResultats() void
+    }
+
+    class MembreJury {
+        -string role
+        -string external_name
+    }
+
+    class EvaluationAcademique {
+        -float note
+        -string commentaire
+        -datetime created_at
+    }
+
+    class EvaluationProfessionnelle {
+        -string commentaire_global
+        -datetime created_at
+    }
+
+    class EvaluationProItem {
+        -int score
+        -string appreciation
+    }
+
+    class Competence {
+        -int id
+        -string libelle
+    }
+
+    %% --- RELATIONS ---
+    Utilisateur <|-- Etudiant
+    Utilisateur <|-- Administrateur
+    Utilisateur <|-- EncadreurAcad
+    Utilisateur <|-- EncadreurPro
+
+    Etudiant "1" -- "0..*" Projet : propose
+    EncadreurAcad "0..1" -- "0..*" Projet : encadre
+    EncadreurPro "0..1" -- "0..*" Projet : supervise
+    
+    Projet "1" *-- "0..*" Livrable : contient
+    Projet "1" *-- "0..*" Tache : possède
+    Projet "0..*" -- "1" CategorieProjet : appartient à
+    Projet "0..*" -- "1" PeriodeAcademique : s'inscrit dans
+
+    Projet "1" o-- "0..1" Soutenance : donne lieu à
+    Soutenance "1" *-- "1..*" MembreJury : composée de
+    MembreJury "0..*" -- "0..1" Utilisateur : est
+    
+    Projet "1" -- "0..1" EvaluationAcademique : objet de
+    Projet "1" -- "1" EvaluationProfessionnelle : objet de
+    EvaluationProfessionnelle "1" *-- "0..*" EvaluationProItem : détaille
+    EvaluationProItem "0..*" -- "1" Competence : évalue
+
+    %% --- STYLISATION ---
+    classDef userGroup fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef projectGroup fill:#f1f8e9,stroke:#2e7d32,stroke-width:2px;
+    classDef suiviGroup fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef evalGroup fill:#fff8e1,stroke:#f57c00,stroke-width:2px;
+    classDef defenseGroup fill:#ffebee,stroke:#c62828,stroke-width:2px;
+
+    Utilisateur:::userGroup
+    Etudiant:::userGroup
+    Administrateur:::userGroup
+    EncadreurAcad:::userGroup
+    EncadreurPro:::userGroup
+    Projet:::projectGroup
+    CategorieProjet:::projectGroup
+    PeriodeAcademique:::projectGroup
+    Livrable:::suiviGroup
+    Tache:::suiviGroup
+    EvaluationAcademique:::evalGroup
+    EvaluationProfessionnelle:::evalGroup
+    EvaluationProItem:::evalGroup
+    Competence:::evalGroup
+    Soutenance:::defenseGroup
+    MembreJury:::defenseGroup
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            mermaid.initialize({ 
+                startOnLoad: true, 
+                theme: 'neutral',
+                securityLevel: 'loose',
+                flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+            });
+            
+            // Masquer le message de chargement une fois Mermaid terminé
+            setTimeout(() => {
+                const loading = document.getElementById('loading');
+                if (loading) loading.style.display = 'none';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
