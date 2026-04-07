@@ -30,7 +30,8 @@ final class SoutenanceController
             // Handle structured jury members if provided
             if (isset($input["jury"]) && is_array($input["jury"])) {
                 foreach ($input["jury"] as $member) {
-                    Soutenance::addJuryMember($pdo, $id, $member["user_id"] ?? null, $member["external_name"] ?? null, $member["role"] ?? "EXAMINATEUR");
+                    $mUserId = (!empty($member["user_id"])) ? (int)$member["user_id"] : null;
+                    Soutenance::addJuryMember($pdo, $id, $mUserId, $member["external_name"] ?? null, $member["role"] ?? "EXAMINATEUR");
                 }
             }
 
@@ -63,7 +64,8 @@ final class SoutenanceController
             if (isset($input["jury"]) && is_array($input["jury"])) {
                 Soutenance::clearJuryMembers($pdo, $id);
                 foreach ($input["jury"] as $member) {
-                    Soutenance::addJuryMember($pdo, $id, $member["user_id"] ?? null, $member["external_name"] ?? null, $member["role"] ?? "EXAMINATEUR");
+                    $mUserId = (!empty($member["user_id"])) ? (int)$member["user_id"] : null;
+                    Soutenance::addJuryMember($pdo, $id, $mUserId, $member["external_name"] ?? null, $member["role"] ?? "EXAMINATEUR");
                 }
             }
             

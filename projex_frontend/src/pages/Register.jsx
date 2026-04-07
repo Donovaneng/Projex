@@ -69,46 +69,16 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const passwordChecks = useMemo(() => {
-    const password = formData.password;
-
-    return {
-      minLength: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /\d/.test(password),
-    };
-  }, [formData.password]);
-
-  const passwordStrength = useMemo(() => {
-    const checks = Object.values(passwordChecks).filter(Boolean).length;
-
-    if (!formData.password) {
-      return { label: "Aucune", width: "w-0", color: "bg-slate-200" };
-    }
-    if (checks <= 1) {
-      return { label: "Faible", width: "w-1/4", color: "bg-red-500" };
-    }
-    if (checks === 2 || checks === 3) {
-      return { label: "Moyenne", width: "w-2/4", color: "bg-amber-500" };
-    }
-    return { label: "Forte", width: "w-full", color: "bg-emerald-500" };
-  }, [passwordChecks, formData.password]);
-
   const passwordsMatch =
     formData.password2.length > 0 && formData.password === formData.password2;
-
-  const isPasswordValid = Object.values(passwordChecks).every(Boolean);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!isPasswordValid) {
-      setError(
-        "Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule et un chiffre."
-      );
+    if (formData.password.length < 6) {
+      setError("Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
 
@@ -404,12 +374,6 @@ export default function Register() {
                 />
               </div>
 
-              <PasswordStrength
-                checks={passwordChecks}
-                strength={passwordStrength}
-                passwordsMatch={passwordsMatch}
-                hasConfirmation={formData.password2.length > 0}
-              />
 
               <button
                 type="submit"
@@ -513,60 +477,6 @@ function PasswordField({ label, name, value, onChange, show, onToggle }) {
   );
 }
 
-function PasswordStrength({ checks, strength, passwordsMatch, hasConfirmation }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium text-slate-700">Sécurité du mot de passe</span>
-        <span
-          className={`font-semibold ${
-            strength.label === "Forte"
-              ? "text-emerald-600"
-              : strength.label === "Moyenne"
-              ? "text-amber-600"
-              : strength.label === "Faible"
-              ? "text-red-600"
-              : "text-slate-400"
-          }`}
-        >
-          {strength.label}
-        </span>
-      </div>
-
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200">
-        <div className={`h-full rounded-full transition-all ${strength.width} ${strength.color}`} />
-      </div>
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <RuleItem ok={checks.minLength} text="Au moins 8 caractères" />
-        <RuleItem ok={checks.uppercase} text="Au moins une majuscule" />
-        <RuleItem ok={checks.lowercase} text="Au moins une minuscule" />
-        <RuleItem ok={checks.number} text="Au moins un chiffre" />
-      </div>
-
-      {hasConfirmation && (
-        <div className="mt-3">
-          <RuleItem ok={passwordsMatch} text="Les mots de passe correspondent" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RuleItem({ ok, text }) {
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <span
-        className={`flex h-5 w-5 items-center justify-center rounded-full ${
-          ok ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-500"
-        }`}
-      >
-        {ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
-      </span>
-      <span className={ok ? "text-slate-700" : "text-slate-500"}>{text}</span>
-    </div>
-  );
-}
 
 function SelectField({ icon: Icon, label, name, value, onChange, options }) {
   return (

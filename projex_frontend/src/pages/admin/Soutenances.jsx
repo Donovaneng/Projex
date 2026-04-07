@@ -7,7 +7,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Loader from '../../components/ui/Loader';
 import { Calendar, Users, MapPin, GraduationCap, Plus, Trash2, Edit3, Save, X, Info, Clock, FileDown } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { useAuth } from '../../hooks/useAuth';
 import DefenseCalendar from '../../components/calendar/DefenseCalendar';
@@ -128,6 +128,7 @@ export default function AdminSoutenances() {
               <DefenseCalendar 
                 soutenances={soutenances} 
                 onSelectDate={(day) => {
+                   if (user?.role !== 'ADMIN') return;
                    setModalMode('create');
                    setFormData({
                       projet_id: '',
@@ -240,13 +241,13 @@ export default function AdminSoutenances() {
                                 setIsModalOpen(true);
                               }}>Modifier</Button>
                                <Button variant="outline" className="rounded-xl border-red-100 text-red-500 hover:bg-red-50" size="sm" icon={Trash2} onClick={() => handleDelete(selectedSoutenance.id)}>Supprimer</Button>
-                               <Button 
-                                 variant="outline" 
-                                 className="rounded-xl border-blue-100 text-blue-600 hover:bg-blue-50" 
-                                 size="sm" 
-                                 icon={FileDown} 
-                                 onClick={() => reportService.generateDefensePV(selectedSoutenance)}
-                               >PV (PDF)</Button>
+                                 <Button 
+                                  variant="outline" 
+                                  className="rounded-xl border-blue-100 text-blue-600 hover:bg-blue-50" 
+                                  size="sm" 
+                                  icon={FileDown} 
+                                  onClick={() => reportService.generateDefensePV(selectedSoutenance)}
+                                >PV (PDF)</Button>
                              </div>
                           )}
                        </Card.Content>
@@ -261,8 +262,8 @@ export default function AdminSoutenances() {
                   </div>
                 )}
               </AnimatePresence>
-           </div>
-        </div>
+            </div>
+         </div>
 
         {/* Modal Programmation */}
         {isModalOpen && (
@@ -365,8 +366,8 @@ export default function AdminSoutenances() {
                   )}
 
                   <div className="space-y-2 mt-2">
-                    {formData.jury.map((m) => (
-                      <div key={m.user_id || m.external_name} className="flex justify-between items-center text-xs p-2 bg-white rounded-lg border border-slate-100">
+                    {formData.jury.map((m, idx) => (
+                      <div key={m.user_id || m.external_name || idx} className="flex justify-between items-center text-xs p-2 bg-white rounded-lg border border-slate-100">
                         <span className="font-bold">{m.prenom} {m.nom} {m.external_name} ({m.role})</span>
                         <button 
                           type="button"

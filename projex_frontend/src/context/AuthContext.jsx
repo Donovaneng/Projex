@@ -80,9 +80,12 @@ export const AuthProvider = ({ children }) => {
   /**
    * Gère l'authentification via Google
    */
-  const googleLogin = async (credential) => {
+  const googleLogin = async (data) => {
     try {
-      const response = await api.post('/auth/google', { credential });
+      // Si data est une chaîne, c'est l'ancien format (id_token) -> { credential: data }
+      // Si data est un objet, c'est le nouveau format (access_token) -> on l'envoie tel quel
+      const payload = typeof data === 'string' ? { credential: data } : data;
+      const response = await api.post('/auth/google', payload);
       if (response.data.flow === 'LOGIN') {
         setUser(response.data.user);
         return { success: true, flow: 'LOGIN', user: response.data.user };

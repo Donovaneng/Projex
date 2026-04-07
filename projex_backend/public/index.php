@@ -158,6 +158,11 @@ $router->get("/api/admin/users/all", function () use ($pdo) {
   AdminController::allUsers($pdo);
 });
 
+$router->get("/api/admin/evaluations/all", function () use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    AdminController::getAllEvaluations($pdo);
+});
+
 $router->get("/admin/users_pending", function () {
   header("Location: /api/admin/users");
   exit;
@@ -182,6 +187,11 @@ $router->put("/api/admin/users/:id", function ($id) use ($pdo) {
 $router->get("/api/admin/stats", function () use ($pdo) {
     RoleMiddleware::require("ADMIN");
     StatsController::getAdminStats($pdo);
+});
+
+$router->get("/api/admin/stats/export-projects", function () use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    StatsController::exportProjectsCSV($pdo);
 });
 
 // Admin - Deliverables
@@ -264,6 +274,12 @@ $router->get("/api/categories", function () use ($pdo) {
 });
 
 // SOUTENANCES
+$router->get("/api/admin/soutenances", function () use ($pdo) {
+    RoleMiddleware::require("ADMIN");
+    SoutenanceController::listSoutenances($pdo);
+});
+
+// Route publique pour le calendrier (si besoin)
 $router->get("/api/soutenances", function () use ($pdo) {
     SoutenanceController::listSoutenances($pdo);
 });

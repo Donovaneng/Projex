@@ -198,6 +198,22 @@ final class AdminController
       try {
           $hash = password_hash($newPassword, PASSWORD_DEFAULT);
           User::updatePassword($pdo, $id, $hash);
+          
+          // Audit Log
+          AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "RESET_PASSWORD", "USER", $id, ["password_hidden" => true]);
+          
+          // Notification to the target user
+          try {
+              Notification::create(
+                $pdo, 
+                $id, 
+                "Sécurité : Mot de passe réinitialisé", 
+                "Votre mot de passe a été réinitialisé par un administrateur. Veuillez l'utiliser pour votre prochaine connexion.", 
+                "/settings",
+                "ALERTE"
+              );
+          } catch (Throwable $e) {}
+
           echo json_encode(["message" => "Mot de passe réinitialisé avec succès"]);
       } catch (Throwable $e) {
           http_response_code(500);

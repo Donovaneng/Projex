@@ -81,7 +81,6 @@ function App() {
             <Route path="/supervisor/deliverables" element={<SupervisorDeliverables />} />
             <Route path="/supervisor/evaluations" element={<SupervisorEvaluations />} />
             <Route path="/supervisor/help" element={<SupervisorHelp />} />
-            <Route path="/supervisor/soutenances" element={<AdminSoutenances />} /> {/* On pourra affiner avec des permissions internes */}
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["ADMIN", "ETUDIANT", "ENCADREUR_ACAD", "ENCADREUR_PRO"]} />}>

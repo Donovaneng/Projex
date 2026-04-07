@@ -273,7 +273,7 @@ final class SupervisorController
       $timeline = [];
 
       // 1. Livrables
-      $livrables = $pdo->prepare("SELECT id, titre as label, description, 'LIVRABLE' as type, submitted_at as date, statut as meta, file_path FROM livrables WHERE project_id = ?");
+      $livrables = $pdo->prepare("SELECT id, titre as label, 'LIVRABLE' as type, submitted_at as date, statut as meta, file_path FROM livrables WHERE project_id = ?");
       $livrables->execute([$projectId]);
       while($row = $livrables->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
 
@@ -291,6 +291,11 @@ final class SupervisorController
       $tasks = $pdo->prepare("SELECT id, titre as label, 'TASK' as type, created_at as date, statut as meta FROM taches WHERE project_id = ?");
       $tasks->execute([$projectId]);
       while($row = $tasks->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
+
+      // 5. Soutenances
+      $sout = $pdo->prepare("SELECT id, 'Soutenance de Projet' as label, 'SOUTENANCE' as type, date_soutenance as date, salle as meta FROM soutenances WHERE projet_id = ?");
+      $sout->execute([$projectId]);
+      while($row = $sout->fetch(PDO::FETCH_ASSOC)) { $timeline[] = $row; }
 
       // Trier par date décroissante
       usort($timeline, function($a, $b) {

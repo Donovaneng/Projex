@@ -126,9 +126,65 @@ final class SystemController
         AuthMiddleware::handle();
         RoleMiddleware::require("ADMIN");
         header("Content-Type: application/json");
-        // Simulation d'une sauvegarde
-        AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "BACKUP", "SYSTEM", null, ["message" => "Sauvegarde manuelle initiée"]);
-        echo json_encode(["message" => "Sauvegarde réussie (simulée)", "timestamp" => date("Y-m-d H:i:s")]);
+
+        $dbConfig = require __DIR__ . '/../../config/db.php';
+        $backupDir = __DIR__ . '/../../storage/backups/';
+        if (!is_dir($backupDir)) mkdir($backupDir, 0777, true);
+
+        $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
+        $filePath = $backupDir . $filename;
+        
+        // Path to mysqldump in XAMPP
+        $mysqldumpPath = 'C:\xampp\mysql\bin\mysqldump.exe';
+        
+        // Construct command
+        $command = sprintf(
+            '"%s" --user=%s --host=%s %s > "%s"',
+            $mysqldumpPath,
+            $dbConfig['user'],
+            $dbConfig['host'],
+            $dbConfig['name'],
+            $filePath
+        );
+
+        try {
+            // Execute command
+            exec($command, $output, $returnVar);
+
+            if ($returnVar !== 0) {
+                throw new Exception("Erreur mysqldump (code $returnVar)");
+            }
+
+            // Purge old backups (30 days)
+            self::cleanupOldBackups($backupDir);
+
+            // Audit Log
+            AuditLog::log($pdo, (int)$_SESSION["user"]["id"], "BACKUP_SYSTEM", "SYSTEM", null, ["file" => $filename]);
+
+            echo json_encode([
+                "message" => "Sauvegarde réussie",
+                "filename" => $filename,
+                "timestamp" => date("Y-m-d H:i:s")
+            ]);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(["error" => "Erreur lors de la sauvegarde : " . $e->getMessage()]);
+        }
+    }
+
+    private static function cleanupOldBackups(string $directory): void
+    {
+        $files = glob($directory . "*.sql");
+        $now = time();
+        $retentionSeconds = 30 * 24 * 60 * 60; // 30 days
+
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                if ($now - filemtime($file) >= $retentionSeconds) {
+                    unlink($file);
+                }
+            }
+        }
     }
 
     public static function generateGlobalReport(PDO $pdo): void

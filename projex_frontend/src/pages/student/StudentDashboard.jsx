@@ -14,7 +14,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { useAuth } from '../../hooks/useAuth';
+
 export default function StudentDashboard() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     project: null,
@@ -44,8 +47,10 @@ export default function StudentDashboard() {
       }
     };
 
-    loadDashboardData();
-  }, []);
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]);
 
   if (loading) {
     return (

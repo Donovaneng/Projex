@@ -284,7 +284,7 @@ const adminService = {
   // Gestion des soutenances
   getSoutenances: async () => {
     try {
-      const response = await api.get('/soutenances');
+      const response = await api.get('/admin/soutenances');
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors de la récupération des soutenances' };
@@ -393,6 +393,12 @@ const adminService = {
     } catch (error) {
       throw error.response?.data || { error: 'Erreur lors de la mise à jour du statut' };
     }
+  },
+
+  // Exporter les projets en CSV
+  exportProjectsCSV: () => {
+    const baseUrl = api.defaults.baseURL;
+    window.open(`${baseUrl}/admin/stats/export-projects`, '_blank');
   },
 };
 

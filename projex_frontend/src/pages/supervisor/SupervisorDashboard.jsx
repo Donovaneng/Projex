@@ -56,8 +56,10 @@ export default function SupervisorDashboard() {
   };
 
   useEffect(() => {
-    loadSupervisorData();
-  }, []);
+    if (user) {
+      loadSupervisorData();
+    }
+  }, [user]);
 
   if (loading) {
     return (

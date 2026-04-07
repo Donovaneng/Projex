@@ -79,14 +79,18 @@ export default function UsersManagement() {
     }
   };
 
-  const handleResetPassword = async (userId, userName) => {
-    const newPassword = window.prompt(`Entrez le nouveau mot de passe pour ${userName} :`, "Reset123!");
-    if (!newPassword) return;
+  const handleResetPassword = async (userId, userFullName) => {
+    const newPassword = window.prompt(
+      `ATTENTION: Vous allez réinitialiser le mot de passe de ${userFullName}.\n\nEntrez le nouveau mot de passe :`, 
+      "Reset123!"
+    );
+    
+    if (!newPassword || newPassword.trim() === "") return;
 
     try {
       await adminService.resetPassword(userId, newPassword);
-      setSuccess(`Mot de passe réinitialisé pour ${userName}`);
-      setTimeout(() => setSuccess(""), 3000);
+      setSuccess(`Le mot de passe de ${userFullName} a été mis à jour.`);
+      setTimeout(() => setSuccess(""), 4000);
     } catch (err) {
       setError(err.error || "Erreur lors de la réinitialisation");
     }
@@ -391,7 +395,7 @@ export default function UsersManagement() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-2">
                             <button 
-                              onClick={() => handleResetPassword(u.id, u.nom)}
+                              onClick={() => handleResetPassword(u.id, `${u.prenom} ${u.nom}`)}
                               className="p-2 text-slate-400 hover:text-orange-600 transition-colors rounded-lg hover:bg-orange-50"
                               title="Réinitialiser le mot de passe"
                             >

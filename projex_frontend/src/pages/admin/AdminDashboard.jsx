@@ -8,8 +8,10 @@ import { Users, FolderKanban, AlertCircle, CheckCircle2, UserCheck, Edit3, Shiel
 import { exportToExcel } from "../../utils/exportUtils";
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  PieChart, Pie, AreaChart, Area 
+  PieChart, Pie, AreaChart, Area, Cell 
 } from 'recharts';
+
+const COLORS = ['#1E4AA8', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 const StatCard = ({ title, value, subtext, icon: IconProp, color, textColor }) => (
   <Card className="border-slate-200 shadow-sm">
@@ -26,7 +28,10 @@ const StatCard = ({ title, value, subtext, icon: IconProp, color, textColor }) =
   </Card>
 );
 
+import { useAuth } from "../../hooks/useAuth";
+
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [periods, setPeriods] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState(null);
@@ -63,9 +68,11 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    loadPeriods();
-    loadStats();
-  }, []);
+    if (user) {
+      loadPeriods();
+      loadStats();
+    }
+  }, [user]);
 
   const handlePeriodChange = (e) => {
      const id = e.target.value === 'all' ? null : Number(e.target.value);
@@ -128,9 +135,10 @@ export default function AdminDashboard() {
              </select>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
              <Button variant="outline" icon={RefreshCcw} onClick={() => loadStats(selectedPeriod)}>Actualiser</Button>
-             <Button className="bg-[#10B981] hover:bg-[#059669] text-white border-none" icon={FileSpreadsheet} onClick={handleExcelExport}>Exporter les notes</Button>
+             <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50" icon={FileSpreadsheet} onClick={adminService.exportProjectsCSV}>Export Projets (CSV)</Button>
+             <Button className="bg-[#10B981] hover:bg-[#059669] text-white border-none" icon={Award} onClick={handleExcelExport}>Exporter les notes</Button>
           </div>
         </header>
 
@@ -189,29 +197,35 @@ export default function AdminDashboard() {
              </Card.Header>
               <Card.Content className="p-6">
                 <div style={{ width: '100%', height: '350px', position: 'relative' }}>
-                  {isMounted && stats && (
-                    <ResponsiveContainer key={`chart1-${stats ? 'ready' : 'empty'}`} width="100%" height={350} debounce={100}>
+                  {isMounted && stats && stats.projectDistribution && stats.projectDistribution.length > 0 ? (
+                    <ResponsiveContainer key={`distribution-${stats.projectDistribution.length}`} width="100%" height={350}>
                       <PieChart>
                         <Pie
-                          data={[
-                            { name: 'En cours', value: stats?.projects?.en_cours || 0, fill: '#1E4AA8' },
-                            { name: 'Terminé', value: stats?.projects?.termine || 0, fill: '#10B981' },
-                            { name: 'En attente', value: stats?.projects?.en_attente || 0, fill: '#F59E0B' }
-                          ]}
+                          data={stats.projectDistribution}
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          paddingAngle={5}
-                          dataKey="value"
-                        />
+                          innerRadius={80}
+                          outerRadius={120}
+                          paddingAngle={8}
+                          dataKey="count"
+                          nameKey="label"
+                          stroke="none"
+                          isAnimationActive={false}
+                        >
+                          {stats.projectDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
                         <Tooltip 
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                            itemStyle={{ fontWeight: 'bold' }}
+                          contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                         />
-                        <Legend verticalAlign="bottom" height={36} />
+                        <Legend verticalAlign="bottom" height={36}/>
                       </PieChart>
                     </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-[350px] text-slate-400 font-medium italic">
+                       Aucune donnée de répartition disponible
+                    </div>
                   )}
                 </div>
               </Card.Content>
@@ -224,22 +238,46 @@ export default function AdminDashboard() {
              </Card.Header>
               <Card.Content className="p-6">
                 <div style={{ width: '100%', height: '350px', position: 'relative' }}>
-                  {isMounted && stats && (
-                    <ResponsiveContainer key={`chart2-${stats ? 'ready' : 'empty'}`} width="100%" height={350} debounce={100}>
-                      <AreaChart data={stats?.monthly_activity || []}>
+                  {isMounted && stats && stats.monthlyActivity && stats.monthlyActivity.length > 0 ? (
+                    <ResponsiveContainer key={`activity-${stats.monthlyActivity.length}`} width="100%" height={350}>
+                      <AreaChart data={stats.monthlyActivity}>
                         <defs>
-                          <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#1E4AA8" stopOpacity={0.8}/>
+                          <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#1E4AA8" stopOpacity={0.3}/>
                             <stop offset="95%" stopColor="#1E4AA8" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8', fontWeight: 'bold' }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94A3B8', fontWeight: 'bold' }} />
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-                        <Area type="monotone" dataKey="count" stroke="#1E4AA8" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+                        <XAxis 
+                          dataKey="month" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fill: '#64748B', fontSize: 12 }}
+                          dy={10}
+                        />
+                        <YAxis 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fill: '#64748B', fontSize: 12 }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="count" 
+                          stroke="#1E4AA8" 
+                          strokeWidth={4}
+                          fillOpacity={1} 
+                          fill="url(#colorActivity)" 
+                          isAnimationActive={false}
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-[350px] text-slate-400 font-medium italic">
+                        Aucune activité mensuelle enregistrée
+                    </div>
                   )}
                 </div>
               </Card.Content>

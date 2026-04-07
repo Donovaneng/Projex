@@ -203,21 +203,28 @@ final class AuthController
 
   /**
    * Identifie ou initialise un utilisateur via Google OAuth2
+   * Supporte id_token (GIS) et access_token (Implicit Flow)
    */
   public static function googleAuth(PDO $pdo): void
   {
       header("Content-Type: application/json");
       $input = json_decode(file_get_contents('php://input'), true);
+      
       $idToken = $input["credential"] ?? "";
+      $accessToken = $input["access_token"] ?? "";
 
-      if ($idToken === "") {
+      if ($idToken === "" && $accessToken === "") {
           http_response_code(400);
           echo json_encode(["error" => "Token Google manquant"]);
           return;
       }
 
-      // Utiliser cURL au lieu de file_get_contents
-      $url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . urlencode($idToken);
+      // Déterminer l'URL de vérification selon le type de token
+      if ($accessToken !== "") {
+          $url = "https://www.googleapis.com/oauth2/v3/userinfo?access_token=" . urlencode($accessToken);
+      } else {
+          $url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . urlencode($idToken);
+      }
       
       $ch = curl_init();
       curl_setopt($ch, CURLOPT_URL, $url);
@@ -235,11 +242,22 @@ final class AuthController
       }
 
       $payload = json_decode($response, true);
-      $email = strtolower($payload["email"] ?? "");
-
-      if ($email === "" || !($payload["email_verified"] ?? false)) {
+      if (!$payload) {
+          error_log("Google Auth Error: Invalid JSON response: " . $response);
           http_response_code(401);
-          echo json_encode(["error" => "Email Google non vérifié"]);
+          echo json_encode(["error" => "Réponse Google invalide"]);
+          return;
+      }
+      
+      error_log("Google Auth DEBUG: Payload = " . json_encode($payload));
+
+      $email = strtolower($payload["email"] ?? "");
+      $verified = (isset($payload["email_verified"]) && $payload["email_verified"]) || isset($payload["sub"]); 
+
+      if ($email === "" || !$verified) {
+          error_log("Google Auth Error: Email not verified or empty. Email: $email");
+          http_response_code(401);
+          echo json_encode(["error" => "Email Google non vérifié ou invalide"]);
           return;
       }
 

@@ -5,11 +5,19 @@ final class Soutenance
 {
     public static function create(PDO $pdo, int $projet_id, string $date, ?string $salle, ?string $jury): int
     {
+        // Nettoyer la date (remplacer le T du datetime-local par un espace pour MySQL)
+        $date = str_replace('T', ' ', $date);
+        
         $stmt = $pdo->prepare("
             INSERT INTO soutenances (projet_id, date_soutenance, salle, jury_membres)
             VALUES (?, ?, ?, ?)
         ");
-        $stmt->execute([$projet_id, $date, $salle, $jury]);
+        $stmt->execute([
+            $projet_id, 
+            $date, 
+            !empty($salle) ? $salle : null, 
+            !empty($jury) ? $jury : null
+        ]);
         return (int)$pdo->lastInsertId();
     }
 
@@ -61,17 +69,19 @@ final class Soutenance
 
     public static function update(PDO $pdo, int $id, array $data): void
     {
+        $date = str_replace('T', ' ', $data["date_soutenance"]);
+        
         $stmt = $pdo->prepare("
             UPDATE soutenances 
             SET date_soutenance = ?, salle = ?, jury_membres = ?, note_finale = ?, observations = ?
             WHERE id = ?
         ");
         $stmt->execute([
-            $data["date_soutenance"],
-            $data["salle"],
-            $data["jury_membres"],
-            $data["note_finale"] ?? null,
-            $data["observations"] ?? null,
+            $date,
+            !empty($data["salle"]) ? $data["salle"] : null,
+            !empty($data["jury_membres"]) ? $data["jury_membres"] : null,
+            !empty($data["note_finale"]) ? (float)$data["note_finale"] : null,
+            !empty($data["observations"]) ? $data["observations"] : null,
             $id
         ]);
     }

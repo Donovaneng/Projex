@@ -76,7 +76,6 @@ export default function Sidebar({ role, isOpen, onClose, isCollapsed, onToggleCo
       { name: "Projets", path: "/supervisor/projects", icon: FolderKanban },
       { name: "Livrables", path: "/supervisor/deliverables", icon: FileText },
       { name: "Évaluations", path: "/supervisor/evaluations", icon: ClipboardCheck },
-      { name: "Soutenances", path: "/supervisor/soutenances", icon: GraduationCap },
       { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ],
@@ -85,7 +84,6 @@ export default function Sidebar({ role, isOpen, onClose, isCollapsed, onToggleCo
       { name: "Projets", path: "/supervisor/projects", icon: FolderKanban },
       { name: "Livrables", path: "/supervisor/deliverables", icon: FileText },
       { name: "Évaluations", path: "/supervisor/evaluations", icon: ClipboardCheck },
-      { name: "Soutenances", path: "/supervisor/soutenances", icon: GraduationCap },
       { name: "Messagerie", path: "/messages", icon: MessageSquare },
       { name: "Notifications", path: "/notifications", icon: Bell }
     ]
