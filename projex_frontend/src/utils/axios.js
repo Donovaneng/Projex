@@ -2,7 +2,7 @@ import axios from "axios";
 import { storage } from "./storage";
 
 const api = axios.create({
-  baseURL: "http://localhost/projex/projex_backend/public/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost/projex/projex_backend/public/api",
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

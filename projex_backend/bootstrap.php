@@ -3,13 +3,16 @@ declare(strict_types=1);
 
 if (session_status() === PHP_SESSION_NONE) {
   // configure session cookie
+  // For production (Railway + Vercel), we need secure=true and samesite=None for cross-domain cookies
+  $is_production = getenv('RAILWAY_ENVIRONMENT') !== false;
+  
   session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
-    'domain' => '', // Laissez vide pour utiliser le domaine actuel
-    'secure' => false, // false pour HTTP local
+    'domain' => '',
+    'secure' => $is_production, 
     'httponly' => true,
-    'samesite' => 'Lax' // Lax est généralement suffisant et mieux supporté localement sans HTTPS
+    'samesite' => $is_production ? 'None' : 'Lax'
   ]);
   session_start();
 }

@@ -6,7 +6,8 @@
  * @param {string} baseUrl L'URL de base du backend (par défaut http://localhost:8000)
  * @returns {string} L'URL complète vers le fichier
  */
-export const formatFileUrl = (path, baseUrl = 'http://localhost/projex/projex_backend/public') => {
+export const formatFileUrl = (path, baseUrl) => {
+  const finalBaseUrl = baseUrl || (import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace('/api', '') : 'http://localhost/projex/projex_backend/public');
   if (!path) return '';
   if (path.startsWith('http')) return path;
 

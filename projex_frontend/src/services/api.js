@@ -6,7 +6,7 @@ import axios from 'axios';
  * @type {import('axios').AxiosInstance}
  */
 const api = axios.create({
-  baseURL: "http://localhost/projex/projex_backend/public/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost/projex/projex_backend/public/api",
   headers: {
     Accept: "application/json",
   },
